@@ -1,0 +1,269 @@
+@import "tailwindcss";
+
+/* Dark mode is class-driven (set on <html> by the theme controller). */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Design tokens
+   Semantic colours (bg / surface / fg / muted / line …) switch with the theme;
+   `brand-*` switches with the accent picker (see [data-accent] below).
+   ────────────────────────────────────────────────────────────────────────── */
+@theme static {
+  --font-sans: "Inter Variable", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: "Plus Jakarta Sans Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --text-2xs: 0.6875rem;
+  --text-2xs--line-height: 1rem;
+  --text-md: 0.9375rem;
+  --text-md--line-height: 1.375rem;
+
+  /* Surfaces & text (light) */
+  --color-bg: #f5f6f8;
+  --color-surface: #ffffff;
+  --color-surface-2: #f2f4f7;
+  --color-surface-3: #e8ebf0;
+  --color-fg: #0f1729;
+  --color-fg-2: #353e51;
+  --color-muted: #687083;
+  --color-subtle: #9aa1b0;
+  --color-line: #e8eaef;
+  --color-line-strong: #d6dae1;
+  --color-scrim: #080b12;
+
+  /* Status */
+  --color-success: #16a34a;
+  --color-success-soft: #e9f7ef;
+  --color-danger: #e5484d;
+  --color-danger-soft: #fdeeee;
+  --color-warning: #d97706;
+  --color-warning-soft: #fdf4e3;
+  --color-info: #0284c7;
+  --color-info-soft: #e6f4fb;
+
+  /* Brand (default accent: indigo) */
+  --color-brand-50: oklch(0.97 0.018 272);
+  --color-brand-100: oklch(0.94 0.036 272);
+  --color-brand-200: oklch(0.88 0.07 272);
+  --color-brand-300: oklch(0.79 0.12 272);
+  --color-brand-400: oklch(0.69 0.17 272);
+  --color-brand-500: oklch(0.6 0.2 272);
+  --color-brand-600: oklch(0.53 0.21 272);
+  --color-brand-700: oklch(0.46 0.19 272);
+  --color-brand-800: oklch(0.39 0.15 272);
+  --color-brand-900: oklch(0.32 0.11 272);
+  --color-brand-950: oklch(0.24 0.08 272);
+
+  /* Semantic accent roles (use these in components) */
+  --color-accent: var(--color-brand-600);
+  /* Text/icons placed on top of an accent fill. Custom light accents switch it to dark. */
+  --color-accent-fg: #ffffff;
+  --color-accent-strong: var(--color-brand-700);
+  --color-accent-soft: var(--color-brand-50);
+  --color-accent-soft-fg: var(--color-brand-700);
+
+  --shadow-card: 0 1px 2px 0 rgb(16 24 40 / 0.04), 0 1px 3px 0 rgb(16 24 40 / 0.05);
+  --shadow-float: 0 10px 30px -8px rgb(16 24 40 / 0.16), 0 3px 8px -3px rgb(16 24 40 / 0.08);
+  --shadow-sheet: 0 -10px 40px -12px rgb(16 24 40 / 0.22);
+  --shadow-edge: -10px 0 30px -12px rgb(16 24 40 / 0.22);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+
+  /* Container-query breakpoints (Android window size classes).
+     Inside the app use @medium: / @expanded: — NOT sm:/md: (viewport-based). */
+  --container-medium: 600px;
+  --container-expanded: 840px;
+
+  --animate-shimmer: shimmer 1.5s ease-in-out infinite;
+  --animate-spin-slow: spin 0.9s linear infinite;
+}
+
+@keyframes shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────── */
+.dark {
+  color-scheme: dark;
+  --color-bg: #0b0d11;
+  --color-surface: #14171c;
+  --color-surface-2: #1b1f26;
+  --color-surface-3: #242931;
+  --color-fg: #f1f3f6;
+  --color-fg-2: #cfd4dc;
+  --color-muted: #979fac;
+  --color-subtle: #697180;
+  --color-line: #232830;
+  --color-line-strong: #313743;
+  --color-scrim: #000000;
+
+  --color-success: #30c46c;
+  --color-success-soft: #10271a;
+  --color-danger: #f26065;
+  --color-danger-soft: #2d1416;
+  --color-warning: #f0a53c;
+  --color-warning-soft: #2b2010;
+  --color-info: #3bb0ea;
+  --color-info-soft: #0e2330;
+
+  --color-accent: var(--color-brand-500);
+  --color-accent-strong: var(--color-brand-400);
+  --color-accent-soft: color-mix(in oklab, var(--color-brand-500) 16%, transparent);
+  --color-accent-soft-fg: var(--color-brand-300);
+
+  --shadow-card: 0 0 0 1px rgb(255 255 255 / 0.03);
+  --shadow-float: 0 12px 32px -8px rgb(0 0 0 / 0.6), 0 0 0 1px rgb(255 255 255 / 0.05);
+  --shadow-sheet: 0 -10px 40px -12px rgb(0 0 0 / 0.7);
+  --shadow-edge: -10px 0 30px -12px rgb(0 0 0 / 0.6);
+}
+
+/* ── Accent palettes (Profile → Settings → App colour) ──────────────────── */
+[data-accent="blue"] {
+  --color-brand-50: oklch(0.97 0.018 256);
+  --color-brand-100: oklch(0.94 0.038 256);
+  --color-brand-200: oklch(0.88 0.075 256);
+  --color-brand-300: oklch(0.8 0.12 256);
+  --color-brand-400: oklch(0.7 0.165 256);
+  --color-brand-500: oklch(0.62 0.19 256);
+  --color-brand-600: oklch(0.55 0.2 258);
+  --color-brand-700: oklch(0.48 0.18 258);
+  --color-brand-800: oklch(0.4 0.145 258);
+  --color-brand-900: oklch(0.33 0.11 258);
+  --color-brand-950: oklch(0.25 0.08 258);
+}
+[data-accent="violet"] {
+  --color-brand-50: oklch(0.97 0.016 288);
+  --color-brand-100: oklch(0.94 0.032 288);
+  --color-brand-200: oklch(0.88 0.062 288);
+  --color-brand-300: oklch(0.79 0.1 288);
+  --color-brand-400: oklch(0.69 0.135 288);
+  --color-brand-500: oklch(0.6 0.155 288);
+  --color-brand-600: oklch(0.53 0.16 288);
+  --color-brand-700: oklch(0.46 0.145 288);
+  --color-brand-800: oklch(0.39 0.12 288);
+  --color-brand-900: oklch(0.32 0.09 288);
+  --color-brand-950: oklch(0.24 0.065 288);
+}
+[data-accent="orange"] {
+  --color-brand-50: oklch(0.975 0.018 62);
+  --color-brand-100: oklch(0.945 0.045 60);
+  --color-brand-200: oklch(0.895 0.09 57);
+  --color-brand-300: oklch(0.835 0.13 54);
+  --color-brand-400: oklch(0.77 0.165 51);
+  --color-brand-500: oklch(0.72 0.185 48);
+  --color-brand-600: oklch(0.66 0.19 44);
+  --color-brand-700: oklch(0.57 0.17 42);
+  --color-brand-800: oklch(0.48 0.14 40);
+  --color-brand-900: oklch(0.4 0.11 40);
+  --color-brand-950: oklch(0.29 0.08 40);
+}
+[data-accent="rose"] {
+  --color-brand-50: oklch(0.97 0.016 15);
+  --color-brand-100: oklch(0.94 0.034 15);
+  --color-brand-200: oklch(0.885 0.07 16);
+  --color-brand-300: oklch(0.81 0.12 17);
+  --color-brand-400: oklch(0.72 0.17 18);
+  --color-brand-500: oklch(0.64 0.2 20);
+  --color-brand-600: oklch(0.58 0.21 22);
+  --color-brand-700: oklch(0.5 0.19 22);
+  --color-brand-800: oklch(0.42 0.155 22);
+  --color-brand-900: oklch(0.35 0.12 22);
+  --color-brand-950: oklch(0.26 0.085 22);
+}
+[data-accent="teal"] {
+  --color-brand-50: oklch(0.975 0.016 175);
+  --color-brand-100: oklch(0.945 0.036 175);
+  --color-brand-200: oklch(0.895 0.07 176);
+  --color-brand-300: oklch(0.82 0.105 177);
+  --color-brand-400: oklch(0.73 0.125 178);
+  --color-brand-500: oklch(0.64 0.125 180);
+  --color-brand-600: oklch(0.56 0.11 182);
+  --color-brand-700: oklch(0.49 0.095 184);
+  --color-brand-800: oklch(0.41 0.078 185);
+  --color-brand-900: oklch(0.34 0.06 186);
+  --color-brand-950: oklch(0.26 0.045 187);
+}
+
+/* ── Base ───────────────────────────────────────────────────────────────── */
+@layer base {
+  :root {
+    color-scheme: light;
+    /* Safe-area insets. The desktop device frame overrides these inline. */
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --nav-h: 64px;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    touch-action: manipulation;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-bg font-sans text-fg antialiased;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  img {
+    -webkit-user-drag: none;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-brand-500) 28%, transparent);
+  }
+}
+
+/* ── Utilities ──────────────────────────────────────────────────────────── */
+@utility no-scrollbar {
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility pt-safe {
+  padding-top: var(--sat);
+}
+
+@utility pb-safe {
+  padding-bottom: var(--sab);
+}
+
+/* Native-feeling press feedback for tappable surfaces. */
+@utility pressable {
+  transition:
+    transform 180ms var(--ease-out-quint),
+    background-color 180ms var(--ease-out-quint),
+    opacity 180ms var(--ease-out-quint);
+  &:active {
+    transform: scale(0.97);
+  }
+}
+
+/* The app surface: no text selection / callouts, like a native app. */
+@utility app-surface {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  & input,
+  & textarea,
+  & [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
