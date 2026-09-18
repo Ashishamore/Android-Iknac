@@ -15,6 +15,7 @@ import { OverviewTab } from './project/OverviewTab'
 import { ScheduleTab } from './project/ScheduleTab'
 import { TeamTab } from './project/TeamTab'
 import { TransportTab } from './project/TransportTab'
+import { useFlag } from '@/store/platform'
 
 const TABS = ['overview', 'boards', 'schedule', 'transport', 'deliveries', 'money', 'team'] as const
 type TabId = (typeof TABS)[number]
@@ -27,7 +28,7 @@ const LABEL: Record<TabId, string> = {
   money: 'Money',
   team: 'Team',
 }
-const parseTab = (t: string | null): TabId => (TABS as readonly string[]).includes(t ?? '') ? (t as TabId) : 'overview'
+const parseTab = (t: string | null): TabId => ((TABS as readonly string[]).includes(t ?? '') ? (t as TabId) : 'overview')
 
 export default function ProjectDetailScreen() {
   const { id } = useParams<{ id: string }>()
@@ -52,7 +53,11 @@ function ProjectDetail({ project }: { project: Project }) {
   const query = useQuery()
   const popup = usePopup()
   const deleteProject = useProjects((s) => s.deleteProject)
+  // Transport is a Control Centre flag: off, the section and its tab go.
+  const transportOn = useFlag('transport')
+  const tabs = TABS.filter((t) => t !== 'transport' || transportOn)
   const [tab, setTab] = useState<TabId>(() => parseTab(query.get('tab')))
+  const view: TabId = tab === 'transport' && !transportOn ? 'overview' : tab
   const [dir, setDir] = useState(0)
   const boards = useProjectOps((s) => s.boards).filter((b) => b.projectId === project.id).length
   const runs = useProjectOps((s) => s.runs).filter((r) => r.projectId === project.id && r.stage < 5).length
@@ -103,7 +108,7 @@ function ProjectDetail({ project }: { project: Project }) {
         >
           <Tabs
             variant="scroll"
-            tabs={TABS.map((t) => ({
+            tabs={tabs.map((t) => ({
               value: t,
               label: LABEL[t],
               count: t === 'boards' ? boards : t === 'deliveries' ? runs : undefined,
@@ -114,14 +119,14 @@ function ProjectDetail({ project }: { project: Project }) {
         </AppBar>
       }
     >
-      <FadeSwitch id={tab} dir={dir}>
-        {tab === 'overview' && <OverviewTab project={project} onTab={change} />}
-        {tab === 'boards' && <BoardsTab project={project} />}
-        {tab === 'schedule' && <ScheduleTab project={project} />}
-        {tab === 'transport' && <TransportTab project={project} onTab={change} />}
-        {tab === 'deliveries' && <DeliveriesTab project={project} onTab={change} />}
-        {tab === 'money' && <MoneyTab project={project} onTab={change} />}
-        {tab === 'team' && <TeamTab project={project} />}
+      <FadeSwitch id={view} dir={dir}>
+        {view === 'overview' && <OverviewTab project={project} onTab={change} />}
+        {view === 'boards' && <BoardsTab project={project} />}
+        {view === 'schedule' && <ScheduleTab project={project} />}
+        {view === 'transport' && <TransportTab project={project} onTab={change} />}
+        {view === 'deliveries' && <DeliveriesTab project={project} onTab={change} />}
+        {view === 'money' && <MoneyTab project={project} onTab={change} />}
+        {view === 'team' && <TeamTab project={project} />}
       </FadeSwitch>
     </Screen>
   )

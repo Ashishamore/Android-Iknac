@@ -6,7 +6,6 @@ import {
   MapPinIcon,
   PackageIcon,
   QrCodeIcon,
-  SealCheckIcon,
   ShieldCheckIcon,
   WarningCircleIcon,
   type Icon,
@@ -41,6 +40,8 @@ import { useBoardById, useProjectOps, useProjectSettings } from '@/store/project
 import { useProject, useProjects, type Project, type ShootLocation } from '@/store/projects'
 import { useDisplayName } from '@/store/session'
 import { AppBar, Button, Card, CheckboxVisual, Chip, EmptyState, FadeSwitch, Screen, Switch, TextField } from '@/ui'
+import { VerifiedTick } from '@/components/platform/VerifiedTick'
+import { useFlag } from '@/store/platform'
 
 type Step = 1 | 2 | 3 | 4 | 5
 const STEP_TITLE: Record<Step, string> = { 1: 'Items', 2: 'Where and when', 3: 'Transport', 4: 'Payment', 5: 'Vendor terms' }
@@ -79,6 +80,8 @@ function Flow({ project, board }: { project: Project; board: ProjectBoard }) {
   const [step, setStep] = useState<Step>(1)
   const [dir, setDir] = useState(1)
   const [done, setDone] = useState<Booking | null>(null)
+  // "Instant booking", from the Control Centre's feature flags.
+  const instant = useFlag('instantBooking')
   const [selected, setSelected] = useState<string[]>(() => bookable.map((l) => l.id))
   const lines = board.lines.filter((l) => selected.includes(l.id))
   const firstDay = lines.reduce((d, l) => (l.from < d ? l.from : d), lines[0]?.from ?? project.startDate)
@@ -141,7 +144,7 @@ function Flow({ project, board }: { project: Project; board: ProjectBoard }) {
 
   const confirm = async () => {
     if (agreed.length < vendors.length) return setError('Agree to every vendor’s terms to continue')
-    const hide = popup.loading(method === 'po' ? 'Raising the order…' : 'Processing payment…')
+    const hide = popup.loading(!instant ? 'Sending the request…' : method === 'po' ? 'Raising the order…' : 'Processing payment…')
     await sleep(1600)
     hide()
     const booking = book(
@@ -172,7 +175,7 @@ function Flow({ project, board }: { project: Project; board: ProjectBoard }) {
     nav.replace(run ? `/customer/projects/${project.id}/runs/${run.id}` : `/customer/projects/${project.id}?tab=deliveries`)
   }
 
-  if (done) return <Confirmed booking={done} project={project} onTrack={trackDelivery} />
+  if (done) return <Confirmed booking={done} project={project} instant={instant} onTrack={trackDelivery} />
 
   const footer = (
     <div>
@@ -193,7 +196,7 @@ function Flow({ project, board }: { project: Project; board: ProjectBoard }) {
           </Button>
         ) : (
           <Button size="lg" className="flex-1" disabled={agreed.length < vendors.length} onClick={confirm}>
-            {method === 'po' ? 'Agree & place order' : `Agree & pay ${formatINR(amounts.total)}`}
+            {!instant ? 'Agree & send the request' : method === 'po' ? 'Agree & place order' : `Agree & pay ${formatINR(amounts.total)}`}
           </Button>
         )}
       </div>
@@ -226,7 +229,7 @@ function Flow({ project, board }: { project: Project; board: ProjectBoard }) {
                 <Card key={vendor.id} className="mt-3 overflow-hidden">
                   <p className="flex items-center gap-1.5 border-b border-line px-4 py-2.5 text-sm font-semibold text-fg">
                     {vendor.name}
-                    {vendor.verified && <SealCheckIcon size={14} weight="fill" className="text-accent" />}
+                    <VerifiedTick vendorId={vendor.id} size={14} />
                     <span className="ml-auto text-xs font-normal text-muted">{vendor.city === HOME_CITY ? vendor.area : vendor.city}</span>
                   </p>
                   {items.map((l) => {
@@ -528,12 +531,12 @@ function Flow({ project, board }: { project: Project; board: ProjectBoard }) {
 
 /* ── Confirmed → Track delivery ──────────────────────────────────────────── */
 
-function Confirmed({ booking, project, onTrack }: { booking: Booking; project: Project; onTrack: () => void }) {
+function Confirmed({ booking, project, instant, onTrack }: { booking: Booking; project: Project; instant: boolean; onTrack: () => void }) {
   const loc = project.locations.find((l) => l.id === booking.deliverTo)
   return (
     <Screen
       surface
-      header={<AppBar close title="Booking confirmed" />}
+      header={<AppBar close title={instant ? 'Booking confirmed' : 'Request sent'} />}
       footer={
         <div className="flex gap-3">
           <Button size="lg" variant="secondary" className="flex-1" onClick={() => nav.pop()}>
@@ -554,7 +557,7 @@ function Confirmed({ booking, project, onTrack }: { booking: Booking; project: P
         >
           <CheckIcon size={40} weight="bold" />
         </motion.span>
-        <h1 className="mt-5 font-display text-2xl font-extrabold tracking-[-0.02em] text-fg">You’re booked</h1>
+        <h1 className="mt-5 font-display text-2xl font-extrabold tracking-[-0.02em] text-fg">{instant ? 'You’re booked' : 'Sent to the vendors'}</h1>
         <p className="mt-1 text-sm text-muted">
           {booking.id} · {booking.invoiceNo}
         </p>
@@ -569,7 +572,11 @@ function Confirmed({ booking, project, onTrack }: { booking: Booking; project: P
             ]}
           />
         </Card>
-        <p className="mt-4 text-[13px] text-muted">Vendors have your notes and paint requests. We’ll message you when each delivery is on the way.</p>
+        <p className="mt-4 text-[13px] text-muted">
+          {instant
+            ? 'Vendors have your notes and paint requests. We’ll message you when each delivery is on the way.'
+            : 'Each vendor has 24 hours to accept. We’ll message you the moment they do, and nothing is charged until they have.'}
+        </p>
       </div>
     </Screen>
   )

@@ -40,6 +40,8 @@ import { useDiscover } from '@/store/discover'
 import { usePrefs } from '@/store/prefs'
 import { activeProjects, useProjects, type Project } from '@/store/projects'
 import { AppBar, Avatar, Button, Chip, ChipRow, IconButton, IconTile, Screen, SectionHeader, Tag } from '@/ui'
+import { VerifiedTick } from '@/components/platform/VerifiedTick'
+import { liveVendors, useCatalogueVersion } from '@/store/platform'
 
 const HINTS = ['rotary phone', 'vanity van', 'chesterfield sofa', 'kaali-peeli taxi', 'brass lantern']
 
@@ -47,6 +49,7 @@ const openSearch = () => nav.push('/customer/discover/search')
 const openMap = () => nav.push(resultsPath({}, { view: 'map' }))
 
 export default function DiscoverTab() {
+  useCatalogueVersion()
   usePrefs((s) => s.distanceUnit) // re-render when units change
   const addRecent = useDiscover((s) => s.addRecent)
   const projects = useProjects((s) => s.projects)
@@ -278,7 +281,7 @@ function AvailableOnDates({ projects }: { projects: Project[] }) {
 /* ── Vendors near you ────────────────────────────────────────────────────── */
 
 function VendorsNearYou() {
-  const near = useMemo(() => VENDORS.filter((v) => inScope(v, 'nearby')).sort((a, b) => a.distanceKm - b.distanceKm), [])
+  const near = liveVendors(VENDORS).filter((v) => inScope(v, 'nearby')).sort((a, b) => a.distanceKm - b.distanceKm)
   return (
     <section>
       <SectionHeader
@@ -294,7 +297,7 @@ function VendorsNearYou() {
             key={v.id}
             vendor={v}
             className="w-[236px] shrink-0 snap-start"
-            onClick={() => nav.push(resultsPath({ vendorId: v.id, scope: 'india' }))}
+            onClick={() => nav.push(`/customer/vendors/${v.id}`)}
           />
         ))}
       </div>
@@ -305,7 +308,7 @@ function VendorsNearYou() {
 /* ── Further afield ──────────────────────────────────────────────────────── */
 
 function FurtherAfield() {
-  const far = useMemo(() => VENDORS.filter((v) => v.city !== HOME_CITY).sort((a, b) => a.distanceKm - b.distanceKm), [])
+  const far = liveVendors(VENDORS).filter((v) => v.city !== HOME_CITY).sort((a, b) => a.distanceKm - b.distanceKm)
   return (
     <section>
       <SectionHeader
@@ -322,14 +325,14 @@ function FurtherAfield() {
             <button
               key={v.id}
               type="button"
-              onClick={() => nav.push(resultsPath({ vendorId: v.id, scope: 'india' }))}
+              onClick={() => nav.push(`/customer/vendors/${v.id}`)}
               className="group relative flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-2/60 active:bg-surface-2"
             >
               <Avatar name={v.name} size="md" />
               <span className="min-w-0 flex-1">
                 <span className="flex items-center gap-1 text-[15px] font-medium text-fg">
                   <span className="truncate">{v.name}</span>
-                  {v.verified && <SealCheckIcon size={14} weight="fill" className="shrink-0 text-accent" />}
+                  <VerifiedTick vendorId={v.id} size={14} />
                 </span>
                 <span className="mt-0.5 block truncate text-[13px] text-muted">
                   {v.city} · {formatDistance(v.distanceKm)} · {count} prop{count === 1 ? '' : 's'}

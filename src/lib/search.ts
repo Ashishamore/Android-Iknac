@@ -22,6 +22,7 @@ import {
   type RentalProp,
   type Vendor,
 } from '@/data/props'
+import { isPropLive, vendorVerified } from '@/store/platform'
 import { addDays, daysInclusive, todayISO } from './dates'
 import { formatDistance } from './format'
 
@@ -341,6 +342,8 @@ function bookedDays(p: RentalProp, from: string, to: string) {
 }
 
 function matches(p: RentalProp, f: Filters, tokens: string[], ignoreScope = false) {
+  // Taken down in the admin panel, or its provider is suspended.
+  if (!isPropLive(p.id)) return false
   const v = vendorById(p.vendorId)
   if (f.similarTo) {
     const target = propById(f.similarTo)
@@ -355,11 +358,14 @@ function matches(p: RentalProp, f: Filters, tokens: string[], ignoreScope = fals
   if (f.freeOnly && f.from && f.to && !isFreeOn(p, f.from, f.to)) return false
   if (f.modifiable && !p.modifiable) return false
   if (f.delivery && !v.delivery) return false
-  if (f.verified && !v.verified) return false
+  if (f.verified && !vendorVerified(v.id)) return false
   if (tokens.length && !tokens.every((t) => hasWord(haystack(p), t))) return false
   if (!ignoreScope && !inScope(v, f.scope)) return false
   return true
 }
+
+/** The catalogue as renters see it: nothing taken down, nothing suspended. */
+export const liveProps = (list: RentalProp[] = PROPS) => list.filter((p) => isPropLive(p.id))
 
 export function searchProps(f: Filters, sort: SortKey = 'nearest') {
   const tokens = tokensOf(f.q)
@@ -416,7 +422,7 @@ export function similarItems(f: Filters, limit = 6): RentalProp[] {
   const tokens = tokensOf(f.q)
   const target = f.similarTo ? propById(f.similarTo) : undefined
   const collection = f.collectionId ? collectionById(f.collectionId) : undefined
-  const scored = PROPS.map((p) => {
+  const scored = liveProps().map((p) => {
     let s = tokens.filter((t) => hasWord(haystack(p), t)).length * 2
     if (f.categories.includes(p.category)) s += 2
     if (f.eras.includes(p.era)) s += 2
@@ -429,7 +435,7 @@ export function similarItems(f: Filters, limit = 6): RentalProp[] {
     .filter((x) => x.s > 0)
     .sort((a, b) => b.s - a.s || b.p.rating - a.p.rating)
   const list = scored.slice(0, limit).map((x) => x.p)
-  return list.length ? list : TRENDING_PROPS.slice(0, limit)
+  return list.length ? list : liveProps(TRENDING_PROPS).slice(0, limit)
 }
 
 /* ── Search suggestions ──────────────────────────────────────────────────── */

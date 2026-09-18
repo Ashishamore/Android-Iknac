@@ -5,7 +5,6 @@ import { PropCard, PropMeta } from '@/components/PropCard'
 import { propById, propCountByVendor, vendorById, type Vendor } from '@/data/props'
 import { formatDistance } from '@/lib/format'
 import { haptic } from '@/lib/haptics'
-import { resultsPath } from '@/lib/search'
 import { nav, useQuery } from '@/navigation'
 import { usePopup } from '@/overlays/popupContext'
 import { useDiscover } from '@/store/discover'
@@ -113,7 +112,7 @@ function VendorRow({ vendor }: { vendor: Vendor }) {
     <div className="relative">
       <button
         type="button"
-        onClick={() => nav.push(resultsPath({ vendorId: vendor.id, scope: 'india' }))}
+        onClick={() => nav.push(`/customer/vendors/${vendor.id}`)}
         className="pressable flex w-full items-center gap-3 rounded-2xl bg-surface p-3.5 pr-14 text-left shadow-card outline-none focus-visible:ring-4 focus-visible:ring-accent/25"
       >
         <Avatar name={vendor.name} size="md" />

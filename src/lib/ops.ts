@@ -3,7 +3,7 @@
  * money and "what's next". Pure helpers + the types the ops store keeps.
  */
 import { HOME_CITY, propById, vendorById, type Vendor } from '@/data/props'
-import { DRIVERS, type RunKind, type TransportMode } from '@/data/ops'
+import { CHECK_STAGE, DRIVERS, type RunKind, type TransportMode } from '@/data/ops'
 import { addDays, daysInclusive, formatDayShort, todayISO } from './dates'
 import { formatINR } from './format'
 import { clashOn } from './search'
@@ -379,6 +379,20 @@ export function bookingStatus(booking: Booking, runs: Run[]): { label: string; t
   if (deliveries.some((r) => r.stage >= 1)) return { label: 'In transit', tone: 'info', group: 'active' }
   return { label: 'Upcoming', tone: 'neutral', group: 'upcoming' }
 }
+
+/** A delivery, return or move that hasn't been handed over yet. */
+export const runOpen = (r: Run) => !r.check.lockedAt && (r.kind === 'return' ? r.stage < 2 : r.stage < 5)
+
+/** The photo check can start (driver arrived, or props packed for pickup). */
+export const checkDue = (r: Run) => r.stage >= CHECK_STAGE[r.kind]
+
+/** Open handovers, the ones due for a check first, then by date. */
+export const handoverRuns = (runs: Run[]) =>
+  runs.filter(runOpen).sort((a, b) => Number(checkDue(b)) - Number(checkDue(a)) || a.date.localeCompare(b.date) || b.stage - a.stage)
+
+/** Runs under way (packed, on the road or at the door), then upcoming ones by date. Finished runs are left out. */
+export const liveRuns = (runs: Run[]) =>
+  runs.filter((r) => r.stage < 5).sort((a, b) => Number(b.stage >= 1) - Number(a.stage >= 1) || a.date.localeCompare(b.date))
 
 /** Vendors of completed bookings that haven't been reviewed yet. */
 export function pendingReviews(bookings: Booking[], runs: Run[], boards: ProjectBoard[], reviewed: { vendorId: string; bookingId: string | null }[]) {

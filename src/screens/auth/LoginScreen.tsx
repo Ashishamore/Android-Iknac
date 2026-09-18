@@ -1,8 +1,9 @@
-import { FilmSlateIcon, StorefrontIcon } from '@phosphor-icons/react'
+import { FilmSlateIcon, InfoIcon, StorefrontIcon } from '@phosphor-icons/react'
 import { useEffect, useRef, useState } from 'react'
 import { haptic } from '@/lib/haptics'
 import { sleep } from '@/lib/hooks'
 import { nav, useQuery } from '@/navigation'
+import { useFlag } from '@/store/platform'
 import { ROLE_LABEL, type Role } from '@/store/session'
 import { AppBar, Button, Screen, Tag, TextField } from '@/ui'
 
@@ -17,6 +18,8 @@ export default function LoginScreen() {
   const [phone, setPhone] = useState('')
   const [error, setError] = useState<string>()
   const [sending, setSending] = useState(false)
+  // "New sign-ups", from the Control Centre's feature flags.
+  const signups = useFlag('signups')
 
   // Focus after the slide-in so the keyboard doesn't interrupt the animation.
   useEffect(() => {
@@ -52,11 +55,17 @@ export default function LoginScreen() {
         {ROLE_LABEL[role]}
       </Tag>
       <h1 className="mt-4 font-display text-[26px] font-extrabold leading-tight tracking-[-0.02em] text-fg">
-        Log in or sign up
+        {signups ? 'Log in or sign up' : 'Log in'}
       </h1>
       <p className="mt-2 text-[15px] leading-relaxed text-muted">
         Enter your mobile number. We’ll send a 6-digit code to verify it.
       </p>
+      {!signups && (
+        <p role="status" className="mt-3 flex items-start gap-2 rounded-2xl bg-warning-soft px-3.5 py-3 text-[13px] leading-relaxed text-fg-2">
+          <InfoIcon size={17} weight="fill" className="mt-px shrink-0 text-warning" />
+          New accounts are paused at the moment. If you already have one, sign in as usual.
+        </p>
+      )}
       <form
         className="mt-7 @medium:max-w-md"
         onSubmit={(e) => {

@@ -1,0 +1,47 @@
+/* Same tokens as the phone app (colours, fonts, accents, dark theme). */
+@import "../../src/index.css";
+
+/* Scan the admin panel and the shared phone-app code it imports (Avatar, Tag, tones…). */
+@source "./";
+@source "../../src";
+
+/* ── Desktop web overrides ──────────────────────────────────────────────── */
+@layer base {
+  html {
+    touch-action: auto;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-accent) 60%, transparent);
+    outline-offset: 2px;
+  }
+
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible {
+    outline: none;
+  }
+}
+
+/* Thin, quiet scrollbars like Teams / VS Code. */
+@utility thin-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-strong) transparent;
+  &::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-line-strong);
+    border: 3px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+  }
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}

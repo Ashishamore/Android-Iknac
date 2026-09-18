@@ -81,7 +81,8 @@ export default function StudioBuilderScreen() {
   const [dir, setDir] = useState(1)
   // 1 · Tell us the scene
   const [source, setSource] = useState<SceneSource>(() => parseSource(query.get('mode')))
-  const [text, setText] = useState('')
+  // Home's "Describe the scene" can hand over a brief.
+  const [text, setText] = useState(() => query.get('brief') ?? '')
   const [script, setScript] = useState('')
   const [photo, setPhoto] = useState<string | null>(null)
   const [photoNote, setPhotoNote] = useState('')

@@ -35,7 +35,7 @@ Each side has its own URL section:
 | --- | --- |
 | `/` | **Welcome**: *I'm an Art Director* or *I'm a Prop Owner* (opens your last-used side if you're signed in) |
 | `/customer/…` | Art Director app: Home · Discover · AI Studio · Projects · Profile (`/customer/discover`, …) |
-| `/renter/…` | Prop Owner app (placeholder home; tabs to be defined). `/Renter` works too |
+| `/renter/…` | Prop Owner app: Today · Stock · Add · Diary · Profile. `/Renter` works too |
 
 - Login is a mobile number plus a 6-digit OTP (any code works in the prototype).
 - Opening `/customer/…` or `/renter/…` while signed out shows that side's login first, then the page you asked for.
@@ -44,6 +44,27 @@ Each side has its own URL section:
 - To switch sides, log out, or use *Switch to renting out my things* in the Art Director's Profile.
 
 Each side's tabs and screens are defined in `src/app/routes.tsx` (`AUTH_APP`, `CUSTOMER_APP`, `OWNER_APP`).
+
+## Home (Art Director)
+
+**`/customer`**, top to bottom:
+
+| Section | What it does |
+| --- | --- |
+| **Greeting** | Time-of-day greeting and the notifications bell |
+| **Promotions banner** | Swipeable 16:9 banners, each opening matching results |
+| **Quick actions** | *New project* · *Scan at handover* (badge = checks due) · *Track delivery* (badge = runs under way; opens the project's Deliveries tab) · *Saved items* |
+| **Continue where you left off** | The last project or AI board you opened, or else your latest board |
+| **Describe the scene** | Opens AI Studio. The example chips pre-fill the brief; *Photo* and *Script* open those modes |
+| **Trending props** | Most booked this week, *See all* |
+| **Vendors near you** | Nearby vendors, each opening its **vendor profile** (`/customer/vendors/:id`) |
+| **Seasonal collections** | Monsoon, Diwali & Navratri, Wedding, Christmas & New Year, Summer; the ones in season come first |
+| **Recently viewed** | Prop listings you opened, latest first. *Clear* can be undone |
+| **Browse all categories** | The 10 categories, and a shortcut to Discover |
+
+**Scan at handover** (`/customer/scan`) is a simulated camera. Tap a handover, *Scan*, or *Type code* (a booking ID such as `BK-1001`). The scan confirms the driver's arrival (or the pickup), starts the 30-minute window and opens that run's photo check at the tag-scan step (`?check=scan`).
+
+**Vendor profile:** rating, distance, delivery, stats (props, reply time, on-time rate), *Call* (masked number), *Directions*, save, share, about, props by category, reviews (yours first) and rental terms. Every vendor tap in the app opens it.
 
 ## Discover (Art Director)
 
@@ -180,6 +201,89 @@ The screen also has **Switch to renting out my things** (opens the Prop Owner si
 
 Seed data includes a wrapped past shoot, *Diwali Sweets TVC* (`diwali-tvc`). Its booking BK-0998 is fully returned, so Past, Completed bookings, refunded deposits and reviews all have something to show.
 
+## Prop Owner app (`/renter`)
+
+The seeded business is **Kapoor Props** (Andheri West). Its stock matches the renter catalogue, plus a few items of its own. Everything is simulated: payments, AI, scanning and verification.
+
+**Global:** a bottom bar of Today · Stock · **Add** (raised centre button) · Diary · Profile. The header shows the business name, the verified tick and the bell (notifications). A dismissible announcement strip sits below it. The Diary tab's badge counts calendar conflicts plus unanswered booking requests.
+
+| Tab | What's in it |
+| --- | --- |
+| **Today** | Earned this month (→ Payouts, next payout date) · KPIs (active bookings, utilisation, rating, live/listed) · promotion strip · quick actions (Add stock, Block dates → Diary, Scan a code → Handover, Messages → Requests) · **Answer now** on a 24-hour clock, most overdue first (booking requests, questions, change requests, damage, deposits to release) · **Moving today** (overdue returns with the late fee, going out → pack list, coming back → check against out photos) · Reservations · Stock needs attention (five reasons) |
+| **Stock** | Summary · search (name, era or tag code) · filters (All / Live / Out now / Reserved / Paused / Needs info) · sort · rows with rate, "X of Y free", status and missing info · **Select many** → pause/unpause or change price by % |
+| **Add** | Many items (rapid capture: shoot, *Next prop*, *Done*) · One item (front, back, detail, in use, scale photo → **Read the photos**, where AI fills the form) · From a list (CSV import, sample sheet, template) · **Waiting for details**: drafts marked "Ready to publish" or "Needs …", Finish capture, Discard with undo |
+| **Diary** | Conflict banner (a block over a booking → *Free it*) · layer toggles (Booked / Reserved / Buffer / Blocked) · month calendar with pieces out per day · day detail · *Block dates* → pick a listing → its availability |
+| **Profile** | Business card and *See it as a renter does* · Business · Verification (phone, identity, warehouse, bank, GST) · Plan (PropKart takes 12%; Pro 8%) · Payouts (coming to you, settled, deposits you hold, bank, invoice statements, order by order) · Policies · Delivery · Reviews (reply) · Promote (tell followers, boost a listing) · Staff (owner, manager, warehouse, add someone) · Language · Help & settings · Switch to renting things · Reset demo · Log out |
+
+**Other screens**
+- **Listing detail:** photos and description as renters read it · Listed/Paused · how it's doing · pricing (1–2 / 3–6 / 7+ day rates, deposit, "you keep ₹N") · pieces (code, condition, where it is; send for repair or return to service) · rules (days either side, can be modified, availability calendar where you tap to block or free) · specs and *Edit details* · Duplicate · *As a renter sees it*.
+- **Order detail:** accept, or decline with a reason (with an overbooking check) · hire · discount · fee · net · pack or check in · release the deposit or claim from it.
+- **Request detail:** answer a question (quick replies), accept or decline a change (extra rent and availability), claim for damage or waive it.
+- **Handover:** simulated scanner (tap a handover, *Scan*, or type an order ID or tag code) → pack list (tick pieces, out photos, hand over) or check-in (compare with out photos, flag damage, mark returned).
+- **Requests** (Messages): booking requests with inline accept/decline · questions · done.
+
+## Admin panel (web)
+
+A desktop web app at **`/Adminpannel`**, on the same port as the prototype — you reach it by typing the URL, and nothing in the phone app links to it. It is laid out like Teams, Jira or Outlook, on the same design tokens as the phone app. It holds two things:
+
+- the **prop owner workspace** (the `/renter` app on a desktop), and
+- the **Control Centre** at `/Adminpannel/admin`, for whoever runs PropKart.
+
+```bash
+npm run dev            # <the port it prints>/Adminpannel — same origin as the apps
+npm run admin          # http://localhost:5175/Adminpannel — the panel on its own
+npm run build:admin    # static build in dist-admin/ (served under /Adminpannel/)
+```
+
+Running it on the app's own port is what makes the Control Centre real: the panel and the apps share one browser origin, so suspending a provider, taking a listing down or flipping a flag changes an open renter or provider app straight away.
+
+### Prop owner workspace
+
+- **Frame:** title bar (logo, <kbd>Ctrl</kbd>+<kbd>K</kbd> search across pages, stock, tag codes, orders and renters · help · theme · bell flyout · account menu) · maintenance strip · collapsible sidebar (workspace switcher with the verified tick, **Add stock**, Today · Stock · Diary · Profile, then Messages · Handover and Payouts · Reviews, each with a badge). Below 1024px the sidebar becomes a drawer. Tables turn into cards on phones.
+- **Entry:** `/Adminpannel` opens Today when "Remember my choice" is on (the default), otherwise the workspace fork at `/workspace`: *I rent props out*, *I hire props for shoots* (the renter app in a new tab), and *Or run the place* for the Control Centre.
+- **Pages:** `/today` · `/stock` (table, bulk pause and price) · `/stock/:id` (listing detail with an availability calendar, `?tab=availability`, `?edit=1`, `?rate=1`) · `/add` (plus `/add/rapid`, `/add/one`, `/add/import`, `/add/draft/:id`) · `/diary` (Outlook-style month and day detail; `?block=1` opens the listing picker) · `/requests`, `/requests/:id` and `/orders/:id` (list plus reading pane) · `/handover` and `/handover/:id` · `/notifications` · `/profile` with `/profile/{business,verification,plan,payouts,policies,delivery,reviews,promote,staff,language,help,preview}`.
+- **Older version:** `/provider` (take one: Dash, Inventory, Requests, Prop, Availability; Earnings and Profile were never built). Reachable from the account menu and Help, not from the fork.
+- **Data:** the panel uses the same owner store and seed as the phone app (`src/store/owner.ts`). On the app's own port they are one copy; `npm run admin` (5175) is a different browser origin, so there the panel keeps its own. *Reset demo data* in the account menu restores the sample.
+
+## Control Centre (`/Adminpannel/admin`)
+
+What the people running PropKart use: the market, the trade, growth and the platform itself. **Everything it changes is read by the phone apps.**
+
+- **Entry:** type the URL, or take *Or run the place* on the workspace fork (it shows what is waiting). Anything under `/admin` that is not a page falls back to Overview. *Back to the apps* returns to the fork.
+- **Frame:** a rail in four groups, with a count on whatever is waiting — **Market** (Overview · People · Verification) · **Trade** (Listings · Orders & disputes · Money) · **Growth** (Coupons · Advertising · Subscriptions) · **Platform** (Broadcast · Feature flags · Audit log · Admin team). *Signed in as* switches between admins and names what that role cannot reach. The maintenance strip shows here as well as in both apps. Every page is Title · one line of intent · actions · table; one record opens a right-hand drawer; a destructive action confirms in place; and every change writes an audit entry in the button's own words.
+
+| Page | What it does |
+| --- | --- |
+| **Overview** | People on PropKart, active in 48 hours, verified, suspended · gross rented, commission, subscriptions, advertising · **Needs a person** (hidden when empty, each row links into the table it came from) · who joined over 12 weeks · open disputes · the last thing anyone did |
+| **People** | Renters and providers in one table. Search name, business, email, phone or city; filter by side and state. The drawer holds the verified switch (the tick both apps print), what has been checked, the plan and subscription, what is on record, their listings, their page as a renter sees it, and Let them in · Suspend · Lift the suspension |
+| **Verification** | One document at a time, waiting or decided. Approve grants the tick and names what was checked; Reject needs a reason and tells them |
+| **Listings** | Reported · Waiting · All stock, with a report panel and a listing drawer. Approve and publish · Put it back · Take it down (with a reason that goes to the log) |
+| **Orders & disputes** | Settle a dispute — charge it to the deposit, refund the renter, split it or no case to answer — and edit the sentence both sides read. Plus every order, with its money lines, what was hired and the transport legs |
+| **Money** | Gross, commission, subscriptions and advertising. The commission slider (0–40%) previews what changes and is **read live by the provider app**. Payouts due and paid, marked paid with an NEFT reference |
+| **Coupons** | Code, what it takes off, who it is for, when it runs and how often, with the sentence a renter would read |
+| **Advertising** | The two slots the apps actually have — Renter Home and Provider Today — with a live preview of the real card at phone width, priority, paid placement and the numbers |
+| **Subscriptions** | The plans on either side of the market, what they unlock, who is on what, and closing one to new sign-ups without touching the accounts on it |
+| **Broadcast** | A strip at the top of an app, with a preview of how it lands. Sent broadcasts can be pulled or deleted |
+| **Feature flags** | AI Studio · Transport · Instant booking · New sign-ups · Maintenance notice (with its wording and a preview), and a list of what is currently off |
+| **Audit log** | Every change, searchable and filtered by area and person. The last 300 are kept, and nothing here can be edited |
+| **Admin team** | Who gets in and how far, the grid the rail and the routes actually read, and the four role blurbs |
+
+- **Roles** are enforced twice: the rail hides what a role cannot reach, and opening its URL is refused. Superadmin gets everything; Operations gets People, Verification, Listings, Orders, Advertising and Broadcast; Finance gets Money, Subscriptions, Coupons and Orders; Support gets People, Orders and Broadcast. Everyone gets Overview and the audit log.
+
+### What it changes on a phone
+
+| In the panel | On the phone |
+| --- | --- |
+| The verified tick | Prop cards, the vendor page and the provider's own header |
+| An approved document | *What's verified* on the vendor page |
+| Suspending a provider | Their whole shelf leaves Discover (the catalogue is untouched) |
+| Taking a listing down | That one item leaves Discover |
+| A campaign | The card under the renter's greeting · the strip on provider Today |
+| A broadcast | A strip at the top of the app it was sent to |
+| Commission | Every earnings figure the provider app quotes |
+| Flags | The AI Studio tab · a project's Transport section · sign-ups · instant booking · the maintenance strip |
+| Plan and subscription | The plan row on either Profile |
+
 ## How it behaves like a native app
 
 - **Screen stack:** screens slide in from the right with a parallax back layer. Screens underneath stay mounted, so scroll position and state survive going back.
@@ -200,9 +304,9 @@ src/
   screens/      auth/ (welcome, login, OTP) · customer/ (art director) · owner/ (prop owner) · shared/
   components/   app building blocks: PropCard / PropRow, project cards, discover/ (search bar, filters, map, sheets),
                 studio/ (scene canvas, credits, slot / swap / history sheets), usePhotoPicker
-  data/         mock catalogue (props, vendors, collections), AI Studio rules and packs, ops, profile (plans, FAQs…), notifications
-  lib/          dates, money and units, colour, search, studio (simulated AI), ops (boards, bookings, runs), image
-  store/        zustand stores: prefs, session, projects, projectOps, discover, studio, saved, profile, notifications, resetDemoData()
+  data/         mock catalogue (props, vendors, collections), AI Studio rules and packs, ops, profile (plans, FAQs…), owner, notifications
+  lib/          dates, money and units, colour, search, studio (simulated AI), ops (boards, bookings, runs), owner (stock, orders, diary, payouts), vendor, image
+  store/        zustand stores: prefs, session, projects, projectOps, discover, studio, saved, profile, recent, owner, notifications, resetDemoData()
 ```
 
 The bottom navigation appears automatically once `TABS` in `src/app/routes.tsx` has two or more entries.

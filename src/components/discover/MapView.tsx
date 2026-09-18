@@ -1,4 +1,4 @@
-import { ListBulletsIcon, SealCheckIcon, StarIcon, XIcon } from '@phosphor-icons/react'
+import { ListBulletsIcon, StarIcon, XIcon } from '@phosphor-icons/react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { HOME_CITY, vendorById, type RentalProp, type Vendor } from '@/data/props'
@@ -10,6 +10,7 @@ import { EASE_OUT, T } from '@/lib/motion'
 import { nav } from '@/navigation'
 import { Avatar } from '@/ui'
 import { PropThumb } from '../PropCard'
+import { VerifiedTick } from '@/components/platform/VerifiedTick'
 
 /*
  * A stylised map of Mumbai (not to scale): the island city runs north–south
@@ -183,7 +184,7 @@ export function MapView({ results, onShowList, className }: MapViewProps) {
               <div className="min-w-0 flex-1">
                 <p className="flex items-center gap-1 truncate text-[15px] font-semibold text-fg">
                   <span className="truncate">{active.vendor.name}</span>
-                  {active.vendor.verified && <SealCheckIcon size={15} weight="fill" className="shrink-0 text-accent" />}
+                  <VerifiedTick vendorId={active.vendor.id} size={15} />
                 </p>
                 <p className="flex items-center gap-1 text-xs text-muted">
                   {active.vendor.area} · {formatDistance(active.vendor.distanceKm)} ·

@@ -41,6 +41,7 @@ import { Menu } from '@/overlays/Menu'
 import { usePopup } from '@/overlays/popupContext'
 import { useProjectOps } from '@/store/projectOps'
 import { activeProjects, useProject, useProjects } from '@/store/projects'
+import { useTrackBoard } from '@/store/recent'
 import { useDisplayName } from '@/store/session'
 import { useBoard, useStudio, type Board } from '@/store/studio'
 import { AppBar, Avatar, Button, Card, EmptyState, IconButton, OptionList, ProgressBar, Screen, SectionHeader, Segmented, Spinner, TextField } from '@/ui'
@@ -68,6 +69,7 @@ const noop = () => {}
 
 function BoardView({ board }: { board: Board }) {
   const popup = usePopup()
+  useTrackBoard('ai', board.id)
   const myName = useDisplayName()
   const credits = useStudio((s) => s.credits)
   const updateBoard = useStudio((s) => s.updateBoard)

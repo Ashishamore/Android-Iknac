@@ -29,7 +29,12 @@ function networkUrls(): Plugin {
 export default defineConfig({
   plugins: [react(), tailwindcss(), networkUrls()],
   resolve: {
-    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+    // '~' is the admin panel (admin/src). It is served from this same origin at
+    // /Adminpannel, so what it changes reaches an open phone app live.
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      '~': fileURLToPath(new URL('./admin/src', import.meta.url)),
+    },
   },
   // Listen on the LAN so phones/tablets on the same Wi-Fi can open the app.
   server: { host: true },

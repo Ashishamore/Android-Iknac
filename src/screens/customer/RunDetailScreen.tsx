@@ -25,13 +25,13 @@ import { PropThumb } from '@/components/PropCard'
 import { CHECK_STAGE, STAGES, TRANSPORT_MODES } from '@/data/ops'
 import { propById, vendorById } from '@/data/props'
 import { cn } from '@/lib/cn'
-import { formatDayShort } from '@/lib/dates'
+import { formatDayShort, todayISO, toISODate } from '@/lib/dates'
 import { formatPhone } from '@/lib/format'
 import { haptic } from '@/lib/haptics'
 import { useNow } from '@/lib/hooks'
 import { EASE_OUT } from '@/lib/motion'
 import { locationName, runTitle, type Run } from '@/lib/ops'
-import { nav, useParams } from '@/navigation'
+import { nav, useParams, useQuery } from '@/navigation'
 import { usePopup } from '@/overlays/popupContext'
 import { useProjectOps, useRunById } from '@/store/projectOps'
 import { useProject, type Project } from '@/store/projects'
@@ -39,6 +39,13 @@ import { useDisplayName } from '@/store/session'
 import { AppBar, Avatar, Button, Card, EmptyState, Screen, SectionHeader, Tag } from '@/ui'
 
 const WINDOW_MS = 30 * 60_000
+
+/** "4:10 pm" today, otherwise "Thu, 17 Sept · 9:36 pm". */
+function stageTime(t: number) {
+  const d = new Date(t)
+  const time = d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })
+  return toISODate(d) === todayISO() ? time : `${formatDayShort(toISODate(d))} · ${time}`
+}
 
 export default function RunDetailScreen() {
   const { id, runId } = useParams<{ id: string; runId: string }>()
@@ -65,7 +72,12 @@ function RunDetail({ project, run }: { project: Project; run: Run }) {
   const extendBooking = useProjectOps((s) => s.extendBooking)
   const booking = useProjectOps((s) => s.bookings.find((b) => b.id === run.bookingId))
   const board = useProjectOps((s) => s.boards.find((b) => b.id === booking?.boardId))
-  const [sheet, setSheet] = useState<{ kind: SheetKind | null; key: number }>({ kind: null, key: 0 })
+  const query = useQuery()
+  // Arriving from Home → "Scan at handover" opens the tag scan straight away.
+  const [sheet, setSheet] = useState<{ kind: SheetKind | null; key: number }>(() => ({
+    kind: query.get('check') === 'scan' && run.stage >= CHECK_STAGE[run.kind] && !run.check.lockedAt ? 'scan' : null,
+    key: 0,
+  }))
   const openSheet = (kind: SheetKind) => setSheet((s) => ({ kind, key: s.key + 1 }))
   const closeSheet = () => setSheet((s) => ({ ...s, kind: null }))
 
@@ -190,7 +202,7 @@ function RunDetail({ project, run }: { project: Project; run: Run }) {
                   </span>
                   <span className="flex min-w-0 flex-1 items-baseline justify-between gap-2">
                     <span className={cn('text-sm', current ? 'font-bold text-fg' : done ? 'font-medium text-fg-2' : 'text-muted')}>{s}</span>
-                    {t && <span className="shrink-0 text-xs text-muted">{new Date(t).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' })}</span>}
+                    {t && <span className="shrink-0 text-xs text-muted">{stageTime(t)}</span>}
                   </span>
                 </li>
               )

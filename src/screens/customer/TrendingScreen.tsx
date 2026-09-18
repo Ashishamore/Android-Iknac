@@ -2,14 +2,18 @@ import { motion } from 'motion/react'
 import { PropCard } from '@/components/PropCard'
 import { TRENDING_PROPS } from '@/data/props'
 import { EASE_OUT } from '@/lib/motion'
+import { liveProps } from '@/lib/search'
+import { useCatalogueVersion } from '@/store/platform'
 import { AppBar, Screen } from '@/ui'
 
 /** "See all" for the Trending props section on Home. */
 export default function TrendingScreen() {
+  useCatalogueVersion()
+  const items = liveProps(TRENDING_PROPS)
   return (
-    <Screen header={<AppBar title="Trending props" subtitle={`${TRENDING_PROPS.length} props · most booked this week`} />}>
+    <Screen header={<AppBar title="Trending props" subtitle={`${items.length} props · most booked this week`} />}>
       <div className="grid grid-cols-2 gap-3 p-4 @medium:grid-cols-3 @expanded:grid-cols-4">
-        {TRENDING_PROPS.map((item, i) => (
+        {items.map((item, i) => (
           <motion.div
             key={item.id}
             initial={{ opacity: 0, y: 12 }}

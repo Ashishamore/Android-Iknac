@@ -8,6 +8,8 @@ import {
   type NavSnapshot,
 } from './navStore'
 import { ScreenContext } from './ScreenContext'
+import { useFlags } from '@/store/platform'
+import { getTabs } from './navStore'
 
 const identity = (s: NavSnapshot) => s
 
@@ -60,4 +62,10 @@ export function useTabReselect(tabId: string | undefined, cb: () => void) {
     if (!tabId) return
     return onTabReselect((id) => id === tabId && ref.current())
   }, [tabId])
+}
+
+/** The tabs a Control Centre feature flag has not taken away. */
+export function useVisibleTabs() {
+  const flags = useFlags()
+  return getTabs().filter((t) => !t.hidden?.(flags))
 }

@@ -3,15 +3,15 @@ import { cn } from '@/lib/cn'
 import { haptic } from '@/lib/haptics'
 import { EASE_OUT, T } from '@/lib/motion'
 import { APP } from '@/app/config'
-import { useNavSnapshot } from './hooks'
-import { getTabs, nav, type TabDef } from './navStore'
+import { useNavSnapshot, useVisibleTabs } from './hooks'
+import { nav, type TabDef } from './navStore'
 
 /**
  * Bottom navigation. The selected tab is marked by a thin primary line along
  * the top edge (it slides between tabs) and a filled, primary-coloured icon.
  */
 export function BottomNav({ className }: { className?: string }) {
-  const tabs = getTabs()
+  const tabs = useVisibleTabs()
   const activeTab = useNavSnapshot((s) => s.activeTab)
   const index = Math.max(0, tabs.findIndex((t) => t.id === activeTab))
   if (tabs.length < 2) return null
@@ -42,7 +42,7 @@ export function BottomNav({ className }: { className?: string }) {
 
 /** Navigation rail used on wide (tablet landscape) layouts. */
 export function NavRail({ className }: { className?: string }) {
-  const tabs = getTabs()
+  const tabs = useVisibleTabs()
   const activeTab = useNavSnapshot((s) => s.activeTab)
   const index = Math.max(0, tabs.findIndex((t) => t.id === activeTab))
   const Logo = APP.logo
@@ -80,6 +80,32 @@ export function NavRail({ className }: { className?: string }) {
 function NavButton({ tab, active, className }: { tab: TabDef; active: boolean; className?: string }) {
   const badge = tab.useBadge?.()
   const Icon = tab.icon
+  if (tab.prominent) {
+    return (
+      <button
+        type="button"
+        aria-label={tab.label}
+        aria-current={active ? 'page' : undefined}
+        onClick={() => {
+          haptic()
+          nav.switchTab(tab.id)
+        }}
+        className={cn('relative flex flex-col items-center justify-end gap-0.5 pb-2 outline-none', className)}
+      >
+        {/* Raised: the button sits above the bar's top edge. */}
+        <motion.span
+          whileTap={{ scale: 0.9 }}
+          className={cn(
+            '-mt-5 grid size-12 place-items-center rounded-2xl bg-accent text-accent-fg shadow-float ring-4 ring-surface transition-transform',
+            active && 'scale-105',
+          )}
+        >
+          <Icon size={26} weight="bold" />
+        </motion.span>
+        <span className={cn('text-2xs font-semibold tracking-wide', active ? 'text-accent' : 'text-muted')}>{tab.label}</span>
+      </button>
+    )
+  }
   return (
     <button
       type="button"

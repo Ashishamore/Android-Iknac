@@ -5,6 +5,7 @@ npm-debug.log*
 
 node_modules
 dist
+dist-admin
 dist-ssr
 *.local
 

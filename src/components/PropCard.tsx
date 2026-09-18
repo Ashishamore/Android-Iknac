@@ -1,4 +1,4 @@
-import { HeartIcon, MapPinIcon, SealCheckIcon, StarIcon } from '@phosphor-icons/react'
+import { HeartIcon, MapPinIcon, StarIcon } from '@phosphor-icons/react'
 import { motion } from 'motion/react'
 import type { ReactNode } from 'react'
 import { vendorById, type RentalProp } from '@/data/props'
@@ -13,6 +13,7 @@ import { usePopup } from '@/overlays/popupContext'
 import { usePrefs } from '@/store/prefs'
 import { useSaved } from '@/store/saved'
 import { CheckboxVisual } from '@/ui'
+import { VerifiedTick } from '@/components/platform/VerifiedTick'
 
 /** Prop photo, or a blank tile with a small faint icon until real photos are supplied. */
 export function PropThumb({ item, className, iconSize = 30 }: { item: RentalProp; className?: string; iconSize?: number }) {
@@ -194,7 +195,7 @@ export function PropRow({
           <h3 className="line-clamp-2 text-[15px] font-semibold leading-5 text-fg">{item.name}</h3>
           <p className="mt-0.5 flex items-center gap-1 truncate text-xs text-muted">
             <span className="truncate">{v.name}</span>
-            {v.verified && <SealCheckIcon size={13} weight="fill" className="shrink-0 text-accent" />}
+            <VerifiedTick vendorId={v.id} size={13} />
           </p>
           <p className="mt-1.5 flex items-center gap-2 text-sm">
             <span>

@@ -1,23 +1,18 @@
 import '@fontsource-variable/inter'
 import '@fontsource-variable/plus-jakarta-sans'
-import './index.css'
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import App from './App'
-import { appFor } from './app/routes'
-import { initNavigation } from './navigation'
-import { resolveStartup, useSession } from './store/session'
+import { ADMIN_BASE } from './lib/adminBase'
 
-// Open the right app for the URL (/customer, /renter or /) and who's signed in.
-const start = resolveStartup()
-useSession.setState({ section: start.section })
-initNavigation(appFor(start.section), start.path)
+const root = createRoot(document.getElementById('root')!)
 
-// Enables :active press styles on iOS Safari.
-document.addEventListener('touchstart', () => {}, { passive: true })
-
-createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <App />
-  </StrictMode>,
-)
+/**
+ * Two web apps on one origin: the phone prototype at /, and the desktop
+ * admin panel at /Adminpannel. Sharing the origin is the point — what the
+ * panel changes (flags, suspensions, campaigns, commission) reaches an open
+ * renter or provider app straight away.
+ */
+if (window.location.pathname.toLowerCase().startsWith(ADMIN_BASE.toLowerCase())) {
+  void import('../admin/src/panel').then((m) => m.mountPanel(root))
+} else {
+  void import('./phone').then((m) => m.mountPhone(root))
+}

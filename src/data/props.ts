@@ -20,6 +20,7 @@ import {
   DeviceMobileIcon,
   DogIcon,
   DressIcon,
+  FlowerLotusIcon,
   FlowerTulipIcon,
   ForkKnifeIcon,
   GuitarIcon,
@@ -37,7 +38,9 @@ import {
   ScooterIcon,
   SparkleIcon,
   SuitcaseIcon,
+  SunIcon,
   TShirtIcon,
+  TreeEvergreenIcon,
   UmbrellaIcon,
   VanIcon,
   VinylRecordIcon,
@@ -249,6 +252,8 @@ export interface Collection {
   blurb: string
   icon: Icon
   propIds: string[]
+  /** Seasonal sets: the months (1–12) they're in demand, e.g. Nov–Feb = { from: 11, to: 2 }. */
+  season?: { from: number; to: number; label: string }
 }
 
 export const COLLECTIONS: Collection[] = [
@@ -256,14 +261,27 @@ export const COLLECTIONS: Collection[] = [
   { id: 'retro-kitchen', name: 'Retro Bombay Home', blurb: 'Formica, radios and rotary phones', icon: CookingPotIcon, propIds: ['formica-dining', 'transistor-radio', 'rotary-phone', 'wall-clock', 'wingback-armchair'] },
   { id: 'disco-nights', name: 'Disco Nights', blurb: 'Mirror balls & bell-bottoms', icon: VinylRecordIcon, propIds: ['disco-ball', 'bell-bottoms', 'neon-sign', 'vintage-motorbike', 'inflatable-chair'] },
   { id: 'y2k-cyber-cafe', name: 'Y2K Cyber Café', blurb: 'CRTs, flip phones, inflatables', icon: DesktopIcon, propIds: ['crt-computer', 'flip-phones', 'inflatable-chair', 'neon-sign', 'office-desk'] },
-  { id: 'wedding-season', name: 'Wedding Season', blurb: 'Lehengas, swings and baraat', icon: ConfettiIcon, propIds: ['bridal-lehenga', 'bougainvillea-arch', 'cane-swing', 'brass-lantern', 'white-horse', 'crew-lunch'] },
-  { id: 'monsoon-streets', name: 'Monsoon Streets', blurb: 'Taxis, scooters and chai', icon: UmbrellaIcon, propIds: ['kaali-peeli', 'vintage-scooter', 'chai-counter', 'roadster-bicycle', 'irani-cafe'] },
+  { id: 'wedding-season', name: 'Wedding Season', blurb: 'Lehengas, swings and baraat', icon: ConfettiIcon, propIds: ['bridal-lehenga', 'bougainvillea-arch', 'cane-swing', 'brass-lantern', 'white-horse', 'crew-lunch'], season: { from: 11, to: 2, label: 'Wedding season' } },
+  { id: 'monsoon-streets', name: 'Monsoon Streets', blurb: 'Taxis, scooters and chai', icon: UmbrellaIcon, propIds: ['kaali-peeli', 'vintage-scooter', 'chai-counter', 'roadster-bicycle', 'irani-cafe'], season: { from: 6, to: 9, label: 'Monsoon' } },
+  { id: 'festive-lights', name: 'Diwali & Navratri', blurb: 'Lanterns, swings and flower arches', icon: FlowerLotusIcon, propIds: ['brass-lantern', 'cane-swing', 'bougainvillea-arch', 'crystal-chandelier', 'ceramic-vases', 'chai-counter'], season: { from: 9, to: 11, label: 'Festive' } },
+  { id: 'christmas-party', name: 'Christmas & New Year', blurb: 'Mirror balls, neon and party lights', icon: TreeEvergreenIcon, propIds: ['disco-ball', 'neon-sign', 'crystal-chandelier', 'acoustic-guitar', 'lounge-chair', 'monstera'], season: { from: 12, to: 1, label: 'Year-end' } },
+  { id: 'summer-holidays', name: 'Summer Holidays', blurb: 'Rooftops, bicycles and film cameras', icon: SunIcon, propIds: ['sea-rooftop', 'roadster-bicycle', 'film-camera', 'inflatable-chair', 'chai-counter'], season: { from: 4, to: 6, label: 'Summer' } },
   { id: 'film-noir', name: 'Film Noir', blurb: 'Lamps, clocks and old sedans', icon: LampIcon, propIds: ['wall-clock', 'rotary-phone', 'gramophone', 'wingback-armchair', 'brass-lantern', 'classic-sedan'] },
   { id: 'nineties-office', name: '90s Office', blurb: 'Steel desks and Doordarshan days', icon: DeskIcon, propIds: ['office-desk', 'police-uniform', 'rotary-phone', 'transistor-radio', 'wall-clock'] },
 ]
 
 const COLLECTION_BY_ID = Object.fromEntries(COLLECTIONS.map((c) => [c.id, c])) as Record<string, Collection>
 export const collectionById = (id: string) => COLLECTION_BY_ID[id]
+
+/** Month distance (0 = in season now) until a seasonal collection is in demand. */
+export function monthsUntil(season: { from: number; to: number }, month = new Date().getMonth() + 1) {
+  const inRange = season.from <= season.to ? month >= season.from && month <= season.to : month >= season.from || month <= season.to
+  return inRange ? 0 : (season.from - month + 12) % 12
+}
+
+/** Seasonal collections: in season first, then the soonest. */
+export const seasonalCollections = (month?: number) =>
+  COLLECTIONS.filter((c) => c.season).sort((a, b) => monthsUntil(a.season!, month) - monthsUntil(b.season!, month))
 
 /** Number of listed props per vendor. */
 export const propCountByVendor = (vendorId: string) => PROPS.filter((p) => p.vendorId === vendorId).length

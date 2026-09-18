@@ -12,6 +12,14 @@ export const SCENE_EXAMPLES = [
   'Wedding sangeet at a haveli with a swing, flowers and a baraat horse.',
 ]
 
+/** Short labels for the examples above (Home's "Describe the scene" chips). */
+export const SCENE_CHIPS = [
+  { label: 'Rainy Irani café', brief: SCENE_EXAMPLES[0] },
+  { label: '70s drawing room', brief: SCENE_EXAMPLES[1] },
+  { label: 'Y2K cyber café', brief: SCENE_EXAMPLES[3] },
+  { label: 'Haveli sangeet', brief: SCENE_EXAMPLES[4] },
+]
+
 export const SAMPLE_SCRIPT = `INT. IRANI CAFÉ – MORNING (1968)
 
 Rain lashes the windows. RAVI (30s) sits at a marble table under the wall clock, stirring his chai. A transistor radio on the counter crackles with an old Rafi song.

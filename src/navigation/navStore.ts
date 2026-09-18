@@ -11,6 +11,7 @@
  */
 import type { ComponentType } from 'react'
 import type { Icon } from '@phosphor-icons/react'
+import type { Flags } from '@/lib/platform'
 
 export type Presentation = 'push' | 'modal' | 'fade'
 
@@ -22,6 +23,10 @@ export interface TabDef {
   component: ComponentType
   /** Optional hook returning a badge count shown on the tab. */
   useBadge?: () => number | undefined
+  /** Raised centre button (e.g. "Add"). */
+  prominent?: boolean
+  /** Hidden while a Control Centre feature flag is off (e.g. AI Studio). */
+  hidden?: (flags: Flags) => boolean
 }
 
 export interface ScreenDef {

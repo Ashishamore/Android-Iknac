@@ -1,14 +1,14 @@
 import { motion, type Variants } from 'motion/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { EASE_OUT } from '@/lib/motion'
-import { useNavSnapshot } from './hooks'
-import { getTabs, type TabDef } from './navStore'
+import { useNavSnapshot, useVisibleTabs } from './hooks'
+import { nav, type TabDef } from './navStore'
 import { ScreenContext } from './ScreenContext'
 import { BottomNav, NavRail } from './TabBar'
 
 /** Keeps every visited tab mounted (scroll + state preserved) and cross-fades between them. */
 export function TabHost() {
-  const tabs = getTabs()
+  const tabs = useVisibleTabs()
   const activeTab = useNavSnapshot((s) => s.activeTab)
   const rootFocused = useNavSnapshot((s) => s.stack.length === 0)
   const [initialTab] = useState(activeTab)
@@ -22,6 +22,12 @@ export function TabHost() {
     setSwitchState({ tab: activeTab, dir: to > from ? 1 : -1 })
     if (!visited.includes(activeTab)) setVisited([...visited, activeTab])
   }
+
+  // A tab can be switched off in the admin panel while it is open.
+  const gone = tabs.length > 0 && !tabs.some((t) => t.id === activeTab)
+  useEffect(() => {
+    if (gone) nav.switchTab(tabs[0].id)
+  }, [gone, tabs])
 
   return (
     <div className="flex h-full flex-col @expanded:flex-row">

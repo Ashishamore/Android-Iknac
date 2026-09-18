@@ -49,6 +49,7 @@ import { Menu } from '@/overlays/Menu'
 import { usePopup } from '@/overlays/popupContext'
 import { useBoardById, useProjectOps } from '@/store/projectOps'
 import { useProject, type Project } from '@/store/projects'
+import { useTrackBoard } from '@/store/recent'
 import { useStudio } from '@/store/studio'
 import { AppBar, Button, Card, EmptyState, IconButton, Screen, Segmented, Tag } from '@/ui'
 
@@ -72,6 +73,7 @@ type SheetKind = 'item' | 'alts' | 'saved' | 'edit' | 'move' | 'new'
 /** BOARD DETAIL: conflicts, schedule block, filter, group by, item options, add, book. */
 function BoardDetail({ project, board }: { project: Project; board: ProjectBoard }) {
   const popup = usePopup()
+  useTrackBoard('project', board.id)
   const now = useNow(30_000).getTime()
   const allBoards = useProjectOps((s) => s.boards)
   const updateBoard = useProjectOps((s) => s.updateBoard)

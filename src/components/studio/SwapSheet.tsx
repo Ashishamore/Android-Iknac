@@ -1,4 +1,4 @@
-import { MagnifyingGlassIcon, SealCheckIcon } from '@phosphor-icons/react'
+import { MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { propById, vendorById } from '@/data/props'
 import { cn } from '@/lib/cn'
 import { formatINR } from '@/lib/format'
@@ -7,6 +7,7 @@ import { candidatesFor, type Limits, type Slot } from '@/lib/studio'
 import { BottomSheet } from '@/overlays/BottomSheet'
 import { Button } from '@/ui'
 import { PropThumb } from '../PropCard'
+import { VerifiedTick } from '@/components/platform/VerifiedTick'
 
 interface SwapSheetProps {
   open: boolean
@@ -60,7 +61,7 @@ export function SwapSheet({ open, onClose, slot, currentId, limits, onPick, onBr
                       <span className="truncate">
                         {v.name} · {distanceLabel(prop)}
                       </span>
-                      {v.verified && <SealCheckIcon size={12} weight="fill" className="shrink-0 text-accent" />}
+                      <VerifiedTick vendorId={v.id} size={12} />
                     </span>
                     {free !== null && (
                       <span className={cn('text-xs font-medium', free ? 'text-success' : 'text-warning')}>

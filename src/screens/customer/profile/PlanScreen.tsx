@@ -12,6 +12,7 @@ import { useProjectOps } from '@/store/projectOps'
 import { activeProjects, useProjects } from '@/store/projects'
 import { useStudio } from '@/store/studio'
 import { AppBar, Button, Card, ProgressBar, Screen, SectionHeader, Segmented, Tag } from '@/ui'
+import { SubscriptionNote } from '@/components/platform/SubscriptionNote'
 
 type Cycle = 'monthly' | 'yearly'
 const RANK: Record<PlanId, number> = { free: 0, pro: 1, studio: 2 }
@@ -58,6 +59,7 @@ export default function PlanScreen() {
   return (
     <Screen header={<AppBar title="Plan" />}>
       <div className="px-4 pb-10 pt-2 @medium:mx-auto @medium:max-w-2xl">
+        <SubscriptionNote side="renter" className="mb-3" />
         {/* Current plan */}
         <div className="relative overflow-hidden rounded-3xl bg-accent p-5 text-accent-fg shadow-float">
           <CrownSimpleIcon aria-hidden size={84} weight="fill" className="absolute -right-2 -top-3 rotate-12 opacity-15" />

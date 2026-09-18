@@ -19,6 +19,12 @@ Stakeholder prototype of an Android app. It runs full-screen on phones and table
 - **Dates** are stored as `"YYYY-MM-DD"` strings (helpers in `src/lib/dates.ts`, Indian formats). Pick them with `DateField` / `Calendar` (`src/ui/DatePicker.tsx`, supports `min`/`max`), not native date inputs. Money uses `formatINR` / `amountInWords` from `src/lib/format.ts`.
 - **Floating actions:** pass `<Fab>` to `<Screen fab>`. It collapses to an icon on scroll.
 - **App-specific building blocks** live in `src/components/` (e.g. `PropCard`, which shows image/rating/save/name/₹ per day). Reuse them across Home, See all, Discover and Search.
+- **Home.** The sections follow the user's Home IA tree (`HomeTab.tsx`).
+  - `store/recent.ts` (`useRecent`, `proto:recent`) holds recently viewed props and the last opened board. `useTrackProp(id)` is called by the prop listing, and `useTrackBoard(kind, id)` by both board screens.
+  - Seasonal collections are `COLLECTIONS` that have a `season` (months). `seasonalCollections()` / `monthsUntil()` in `data/props.ts` sort them.
+  - Vendor taps open `/customer/vendors/:id` (`VendorProfileScreen`). Its mock stats and reviews come from `lib/vendor.ts` (`vendorFacts`) and `data/vendors.ts`.
+  - `/customer/scan` (`HandoverScanScreen`, modal) simulates the handover QR scan: it moves the run to its check stage (`CHECK_STAGE`) and `nav.replace`s to the run with `?check=scan`, which opens `ScanSheet`. The helpers are `handoverRuns`, `checkDue` and `liveRuns` in `lib/ops.ts`.
+  - The AI Studio builder accepts `?brief=` to pre-fill the scene text.
 - **Discover / search.**
   - The catalogue is in `src/data/props.ts`: categories, eras, materials, vendors (distance, verified, road freight, Mumbai map position), props (booked ranges are relative to today) and collections.
   - Search logic is in `src/lib/search.ts`: `Filters` ⇄ URL query (`parseFilters` / `toQuery` / `resultsPath`), matching, sorting, scope (Nearby / Mumbai / Maharashtra / All India), `widerCounts`, `similarItems` and availability.
@@ -67,11 +73,39 @@ Stakeholder prototype of an Android app. It runs full-screen on phones and table
   - Saved vendors are in `useSaved().vendors`. The prop listing has a Save pill on the vendor card.
   - **Units:** `usePrefs` holds `distanceUnit` / `sizeUnit` and syncs them into `lib/format.ts`. Always show distances with `formatDistance(km)` and sizes with `formatSize([w, d, h])`. A component that shows them must subscribe (`usePrefs((s) => s.distanceUnit)`) so it re-renders when the unit changes.
   - "Switch to renting out my things" signs in to the owner side with the same number (`login('owner', phone, '/renter')`), or enters it if it's already signed in.
+- **Prop Owner app** (`/renter`, `OWNER_APP`). The screens are in `screens/owner/` and the shared pieces (`OwnerAppBar`, `ListingThumb`, `DueTag`, `MonthGrid`, `Stepper`, `ListingForm`, `DeclineSheet`) are in `components/owner/`.
+  - `store/owner.ts` (`useOwner`, `proto:owner`) holds the business, verification, bank, policies, delivery, plan, listings (with pieces and blocks), orders, holds, requests, reviews, staff, drafts and notifications. The seed is Kapoor Props, and its ids (`l-rotary`, `OR-2049`, `rq-3`, …) are fixed.
+  - `useOwnerUi` is a small transient store (e.g. Today's "Block dates" opens Diary's listing picker). `useDiaryBadge` feeds the Diary tab badge; `TabDef.useBadge` and `TabDef.prominent` (the raised centre Add button) are in `navigation/navStore.ts`.
+  - Pure helpers are in `lib/owner.ts`: `listingState`, `freeToday`, `needsInfo` (size and weight only for physical categories), `attention`, `answerNow` (24-hour clock), `movingToday`, `lateFee`, `dayLayers`, `conflicts`, `orderMoney` (hire, discount, fee, net), `payoutSummary`, `tierRates` (3–6 days −10%, 7+ −20%) and `draftMissing` / `formMissing`.
+  - Constants are in `data/owner.ts`: `PLATFORM = 'PropKart'`, the plans (Standard 12%, Pro 8%), AI guesses for "Read the photos", the sample CSV, decline reasons and staff roles.
+  - "As a renter sees it" and "See it as a renter does" are in-app previews built from owner data. They don't link to the renter catalogue.
 - **Sibling sheets keyed by a counter** (`key={sheet.key}` to reset a sheet's state on each open) need distinct keys, e.g. `` key={`invite-${n}`} ``. Two siblings both keyed `0` trigger React's duplicate-key warning.
 - **Lists in a `grid`** use `grid-cols-1`, not just `grid`. Otherwise a long `truncate` line can widen the column past the screen.
 - **Centring a full-width button on tablets:** wrap it in `<div className="@medium:mx-auto @medium:max-w-md">`. Auto margins don't work on the inline-flex button itself.
 - **Screens** use `<Screen header footer>` with `<AppBar>`. Sticky footers are handled by `Screen`. Keep the mock data in `src/data` and state in the zustand stores.
 - **Persisted stores** use a `proto:` storage key (zustand `persist` `name`), so "Reset demo" (`src/store/reset.ts`) clears them. `proto:prefs` is kept.
+
+## Admin panel (web, `admin/`)
+
+A desktop web app at `/Adminpannel`. It holds the **prop owner workspace** and the **Control Centre** (`/Adminpannel/admin`). It is not the phone prototype: **don't link to it from the phone app** — it is reached by typing the URL.
+- It is served twice. `src/main.tsx` branches on `ADMIN_BASE` (`src/lib/adminBase.ts`) and lazily mounts `admin/src/panel.tsx`, so the panel runs on the **app's own dev server and origin** — that's what lets the Control Centre change an open phone app. `npm run admin` (`vite.admin.config.ts`, port 5175) still serves it standalone.
+- It reuses the owner logic from `src/`: `store/owner.ts`, `lib/owner.ts`, `data/owner.ts`, `data/props.ts`, `lib/dates.ts`, `lib/format.ts`, and `Avatar`/`Tag`/`Spinner` from `src/ui/Display.tsx`. Import those with `@/`, and admin code with `~/` (`admin/src`). Don't import `src/navigation`, `src/overlays` or `src/ui/index.ts`: they bring in the phone shell.
+- The phone-app rules on container queries, `position: fixed`, portals, `nav` and `useBackHandler` don't apply here. Use viewport breakpoints (`sm:` … `2xl:`). The sidebar shows at `lg:`.
+- Routing: `admin/src/router.ts` (`navigate`, `linkProps`, `useQuery`, `fromOwnerPath` maps `/renter/…` notification paths). The route table is in `admin/src/App.tsx`; `BASE` comes from `ADMIN_BASE`. `/provider` and `/workspace` render without the shell (`bare`), and anything under `/admin` goes to `ControlCentre`.
+- UI kit in `admin/src/ui/`: `controls.tsx` (Button, IconButton, TextField, Select, Switch, Checkbox, Segmented, Tabs, Chip, Stepper, Kbd), `display.tsx` (PageHeader, Card/CardHeader, Stat, KV, Banner, Thumb, DueTag), `overlays.tsx` (Dialog, **Drawer**, Menu, FeedbackHost), `table.tsx` (DataTable, Toolbar, ShowMore, TwoLine), `feedback.ts` (`toast`, `confirm`, `busy`), `Calendar.tsx` / `month.ts`.
+- Shell pieces are in `admin/src/shell/`: `Shell` (title bar, strip, sidebar, drawer), `CommandPalette` (Ctrl+K) and `Notifications`. Badge counts come from `useCounts()` in `admin/src/lib/data.ts`.
+- Profile sections are listed once in `pages/profile/sections.ts`. They drive the overview, the settings nav and the palette.
+- `admin/src/admin.css` imports `src/index.css` (same tokens) and `@source`s `src/`, so shared classes get generated.
+- UI prefs are in `useUi` (`proto:admin-ui`: theme, accent, language, sidebar, remember workspace). Language switches only the shell labels (`lib/i18n.ts`).
+
+### Control Centre (`admin/src/admin/`, at `/Adminpannel/admin`)
+
+Built to the user's Control Centre IA tree. It is the platform's own app, not the owner's.
+- `nav.ts` has `AREA` (label, one line of intent, path, icon), `GROUPS` (Market · Trade · Growth · Platform) and `areaOf(path)`. `Shell.tsx` is the frame: rail with counts, *Signed in as* (switch admin, and what that role cannot reach), the maintenance strip, *Back to the apps*. `ControlCentre.tsx` routes `/admin/…`, falls back to Overview and refuses an area the role cannot reach. `lib.ts` has `useMe`, `useCan`, `useCounts`, `useMoney`, `useListingRows`, `useJoinSeries`.
+- Pages are one file each in `admin/src/admin/pages/`. Every page follows **Title · one line of intent · actions · table**; one record opens the right-hand `Drawer`; destructive actions use `confirm()` in place.
+- State is `usePlatform` (`src/store/platform.ts`, `proto:platform`), seeded from `src/data/platform.ts`; types and pure helpers are in `src/lib/platform.ts` (roles, `roleCan`, states, `couponState`, `campaignFor`, `outcomeSentence`, `FLAG_META`). **Every mutating action calls `log()`**, which writes an audit entry in the button's own words — keep that up when adding actions.
+- The store lives in `src/` because the phone apps read it: `isPropLive` / `liveProps` gate `src/lib/search.ts`, `liveVendors` and `useVendorVerified` gate the vendor lists and ticks, `useFlag` drives the AI Studio tab (`TabDef.hidden`), the project Transport tab, sign-ups and instant booking, `useSlotCampaign` fills the two advertising slots, and `useCommission` feeds `useFeeRate`. Screens that list props call `useCatalogueVersion()` so a change in the panel re-renders them.
+- The pieces the panel puts inside the apps are in `src/components/platform/`: `Promo.tsx` (`CampaignCard`, `CampaignStrip`, `BroadcastStrip`, `MaintenanceStrip` — pure props, no `nav`, so the panel renders the same components as its preview), `AppStrip.tsx` (mounted in `RoleRouter`), `VerifiedTick.tsx` and `SubscriptionNote.tsx`.
 
 ## Images
 
@@ -86,5 +120,5 @@ Prop images are blank tiles with a faint icon until real photos are added via `R
 
 ## Checks
 
-`npm run typecheck`, `npm run lint` (oxlint) and `npm run build` should all pass.
+`npm run typecheck`, `npm run lint` (oxlint), `npm run build` and `npm run build:admin` should all pass.
 Edit files with the editor tools, not PowerShell `Set-Content`: it breaks UTF-8 characters and adds a BOM.

@@ -25,6 +25,7 @@ import { nav, useParams } from '@/navigation'
 import { usePopup } from '@/overlays/popupContext'
 import { usePrefs } from '@/store/prefs'
 import { activeProjects, useProjects } from '@/store/projects'
+import { useTrackProp } from '@/store/recent'
 import { useSaved } from '@/store/saved'
 import { AppBar, Button, Card, EmptyState, IconButton, Screen, SectionHeader, Tag } from '@/ui'
 
@@ -45,6 +46,7 @@ export default function PropDetailScreen() {
 function Listing({ propId }: { propId: string }) {
   const popup = usePopup()
   const prop = propById(propId)
+  useTrackProp(prop.id)
   const vendor = vendorById(prop.vendorId)
   const saved = useSaved((s) => !!s.saved[prop.id])
   const toggle = useSaved((s) => s.toggle)
@@ -181,7 +183,7 @@ function Listing({ propId }: { propId: string }) {
 
         <SectionHeader title="From" className="pt-6" />
         <div className="relative px-4">
-          <VendorCard vendor={vendor} className="w-full pr-28" onClick={() => nav.push(resultsPath({ vendorId: vendor.id, scope: 'india' }))} />
+          <VendorCard vendor={vendor} className="w-full pr-28" onClick={() => nav.push(`/customer/vendors/${vendor.id}`)} />
           <button
             type="button"
             aria-pressed={vendorSaved}

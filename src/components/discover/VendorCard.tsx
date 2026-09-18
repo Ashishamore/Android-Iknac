@@ -1,9 +1,10 @@
-import { MapPinIcon, SealCheckIcon, StarIcon, TruckIcon } from '@phosphor-icons/react'
+import { MapPinIcon, StarIcon, TruckIcon } from '@phosphor-icons/react'
 import { propCountByVendor, type Vendor } from '@/data/props'
 import { cn } from '@/lib/cn'
 import { formatDistance } from '@/lib/format'
 import { usePrefs } from '@/store/prefs'
 import { Avatar, Tag } from '@/ui'
+import { VerifiedTick } from '@/components/platform/VerifiedTick'
 
 /** Vendor tile for "Vendors near you": name, area, distance, rating, props. */
 export function VendorCard({ vendor, onClick, className }: { vendor: Vendor; onClick: () => void; className?: string }) {
@@ -20,7 +21,7 @@ export function VendorCard({ vendor, onClick, className }: { vendor: Vendor; onC
         <div className="min-w-0 flex-1">
           <p className="flex items-center gap-1 text-[15px] font-semibold text-fg">
             <span className="truncate">{vendor.name}</span>
-            {vendor.verified && <SealCheckIcon size={15} weight="fill" aria-label="Verified" className="shrink-0 text-accent" />}
+            <VerifiedTick vendorId={vendor.id} size={15} />
           </p>
           <p className="truncate text-xs text-muted">{vendor.area}</p>
         </div>
