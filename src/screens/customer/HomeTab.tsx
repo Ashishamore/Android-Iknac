@@ -7,11 +7,13 @@ import {
   HeartIcon,
   QrCodeIcon,
   ScrollIcon,
+  ShoppingBagIcon,
   SparkleIcon,
   TruckIcon,
   type Icon,
 } from '@phosphor-icons/react'
 import { motion, useTransform } from 'motion/react'
+import { CartButton } from '@/components/CartButton'
 import { VendorCard } from '@/components/discover/VendorCard'
 import { ProjectBoardCard } from '@/components/ops/ProjectBoardCard'
 import { PropCard, PropThumb } from '@/components/PropCard'
@@ -19,11 +21,11 @@ import { BoardCard } from '@/components/studio/BoardCard'
 import { CATEGORIES, monthsUntil, propById, seasonalCollections, TRENDING_PROPS, VENDORS, type Collection } from '@/data/props'
 import { SCENE_CHIPS } from '@/data/studio'
 import { cn } from '@/lib/cn'
-import { timeAgo } from '@/lib/dates'
+import { formatDayShort, timeAgo } from '@/lib/dates'
 import { haptic } from '@/lib/haptics'
 import { useNow } from '@/lib/hooks'
 import { EASE_OUT } from '@/lib/motion'
-import { checkDue, handoverRuns, liveRuns } from '@/lib/ops'
+import { ORDER_STEPS, bookingStatus, checkDue, handoverRuns, liveRuns, orderProgress, orderTodos } from '@/lib/ops'
 import { inScope, liveProps, resultsPath } from '@/lib/search'
 import { TONE_SOFT, type Tone } from '@/lib/tones'
 import { nav } from '@/navigation'
@@ -35,7 +37,7 @@ import { activeProjects, useProjects } from '@/store/projects'
 import { useRecent } from '@/store/recent'
 import { useDisplayName } from '@/store/session'
 import { useStudio } from '@/store/studio'
-import { AppBar, Carousel, IconButton, ImagePlaceholder, Screen, SectionHeader, useScrollY } from '@/ui'
+import { AppBar, Card, Carousel, IconButton, IconTile, ImagePlaceholder, Screen, SectionHeader, Tag, useScrollY } from '@/ui'
 import { liveVendors, useCatalogueVersion } from '@/store/platform'
 import { CampaignCard } from '@/components/platform/Promo'
 import { usePlatform, useSlotCampaign } from '@/store/platform'
@@ -105,13 +107,16 @@ export default function HomeTab() {
           solidAt={64}
           title={`Hi, ${firstName}`}
           actions={
-            <IconButton
-              icon={BellIcon}
-              label="Notifications"
-              variant="surface"
-              badge={unread}
-              onClick={() => nav.push('/customer/notifications')}
-            />
+            <>
+              <CartButton variant="surface" />
+              <IconButton
+                icon={BellIcon}
+                label="Notifications"
+                variant="surface"
+                badge={unread}
+                onClick={() => nav.push('/customer/notifications')}
+              />
+            </>
           }
         />
       }
@@ -145,6 +150,7 @@ export default function HomeTab() {
       </Carousel>
 
       <QuickActions />
+      <TrackOrder />
       {/* Side by side on tablets */}
       <div className="@medium:grid @medium:grid-cols-2 @medium:items-start @medium:gap-x-4 @medium:px-4">
         <ContinueBoard />
@@ -180,7 +186,7 @@ function WelcomeHeader({ firstName }: { firstName: string }) {
   const opacity = useTransform(scrollY, [0, 64], [1, 0])
   return (
     <motion.header style={{ opacity }} className="px-4 pb-2 pt-[calc(var(--sat)+20px)]">
-      <div className="pr-14">
+      <div className="pr-24">
         <motion.p {...rise(0)} className="text-sm font-medium text-muted">
           {greeting()}
         </motion.p>
@@ -215,20 +221,23 @@ function QuickActions() {
   const runs = useProjectOps((s) => s.runs)
   const projects = useProjects((s) => s.projects)
   const active = new Set(activeProjects(projects).map((p) => p.id))
-  const live = liveRuns(runs.filter((r) => active.has(r.projectId)))
+  // Active projects' runs, plus direct orders (no project).
+  const live = liveRuns(runs.filter((r) => !r.projectId || active.has(r.projectId)))
   const moving = live.filter((r) => r.stage >= 1).length
   const due = handoverRuns(runs).filter(checkDue).length
 
   const track = () => {
     const next = live[0]
     if (!next) {
-      popup.toast('Nothing on the way yet. Book a board and its deliveries show up here.')
-      return nav.switchTab('projects')
+      popup.toast('Nothing on the way yet. Rent a prop or book a board and its deliveries show up here.')
+      return nav.push('/customer/orders')
     }
-    nav.push(`/customer/projects/${next.projectId}?tab=deliveries`)
+    nav.push(next.projectId ? `/customer/projects/${next.projectId}?tab=deliveries` : `/customer/orders/${next.bookingId}`)
   }
 
+  // The two ways to rent sit side by side: order straight away, or plan a project.
   const actions: { label: string; aria: string; icon: Icon; badge?: number; onClick: () => void }[] = [
+    { label: 'My orders', aria: 'My orders', icon: ShoppingBagIcon, onClick: () => nav.push('/customer/orders') },
     { label: 'New project', aria: 'New project', icon: FolderSimplePlusIcon, onClick: () => nav.push('/customer/projects/new') },
     { label: 'Scan at handover', aria: 'Scan code at handover', icon: QrCodeIcon, badge: due, onClick: () => nav.push('/customer/scan') },
     { label: 'Track delivery', aria: 'Track delivery', icon: TruckIcon, badge: moving, onClick: track },
@@ -236,7 +245,7 @@ function QuickActions() {
   ]
 
   return (
-    <div className="grid grid-cols-4 gap-2 px-4 pt-6">
+    <div className="grid grid-cols-5 gap-1.5 px-4 pt-6">
       {actions.map((a, i) => (
         <motion.button
           key={a.label}
@@ -260,6 +269,67 @@ function QuickActions() {
         </motion.button>
       ))}
     </div>
+  )
+}
+
+/* ── Track your order (rented without a project) ─────────────────────────── */
+
+function TrackOrder() {
+  const bookings = useProjectOps((s) => s.bookings)
+  const runs = useProjectOps((s) => s.runs)
+  // The direct order that needs you, or has something moving soonest.
+  const open = bookings.filter((b) => !b.projectId && bookingStatus(b, runs).group !== 'completed')
+  const order =
+    open.find((b) => orderTodos(b, runs).some((t) => t.run)) ??
+    open.find((b) => b.id === liveRuns(runs.filter((r) => !r.projectId))[0]?.bookingId) ??
+    open[0]
+  if (!order) return null
+
+  const status = bookingStatus(order, runs)
+  const { step } = orderProgress(order, runs)
+  const todo = orderTodos(order, runs).find((t) => t.run)
+  const next = liveRuns(runs.filter((r) => r.bookingId === order.id))[0]
+  const detail = todo
+    ? todo.title
+    : next
+      ? `${next.kind === 'return' ? 'Pickup' : 'Delivery'} ${formatDayShort(next.date)} · ${next.window}`
+      : ORDER_STEPS[step]
+
+  return (
+    <section>
+      <SectionHeader
+        title="Track your order"
+        subtitle={open.length > 1 ? `${open.length} orders on the go` : 'Rented without a project'}
+        action="My orders"
+        onAction={() => nav.push('/customer/orders')}
+        className="pt-7"
+      />
+      <div className="px-4 @medium:mx-auto @medium:max-w-2xl">
+        <Card onClick={() => nav.push(`/customer/orders/${order.id}`)} className="p-3.5">
+          <div className="flex items-center gap-3">
+            <IconTile icon={ShoppingBagIcon} tone="info" size="sm" />
+            <div className="min-w-0 flex-1">
+              <p className="flex items-center gap-2">
+                <span className="truncate text-[15px] font-semibold text-fg">Order {order.id}</span>
+                <Tag tone={status.tone} dot className="ml-auto shrink-0">
+                  {status.label}
+                </Tag>
+              </p>
+              <p className={cn('truncate text-[13px]', todo ? 'font-semibold text-warning' : 'text-muted')}>{detail}</p>
+            </div>
+          </div>
+          <div className="mt-3 flex gap-1" aria-hidden>
+            {ORDER_STEPS.map((s, k) => (
+              <span key={s} className={cn('h-1 flex-1 rounded-full', k <= step ? 'bg-success' : 'bg-surface-3')} />
+            ))}
+          </div>
+          <p className="mt-1.5 flex items-center justify-between text-xs">
+            <span className="font-semibold text-fg-2">{ORDER_STEPS[step]}</span>
+            <span className="font-semibold text-accent">Track</span>
+          </p>
+        </Card>
+      </div>
+    </section>
   )
 }
 

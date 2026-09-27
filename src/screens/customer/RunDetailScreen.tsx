@@ -30,11 +30,11 @@ import { formatPhone } from '@/lib/format'
 import { haptic } from '@/lib/haptics'
 import { useNow } from '@/lib/hooks'
 import { EASE_OUT } from '@/lib/motion'
-import { locationName, runTitle, type Run } from '@/lib/ops'
+import { bookingPlaces, locationName, runTitle, type Place, type Run } from '@/lib/ops'
 import { nav, useParams, useQuery } from '@/navigation'
 import { usePopup } from '@/overlays/popupContext'
 import { useProjectOps, useRunById } from '@/store/projectOps'
-import { useProject, type Project } from '@/store/projects'
+import { useProjects } from '@/store/projects'
 import { useDisplayName } from '@/store/session'
 import { AppBar, Avatar, Button, Card, EmptyState, Screen, SectionHeader, Tag } from '@/ui'
 
@@ -47,31 +47,36 @@ function stageTime(t: number) {
   return toISODate(d) === todayISO() ? time : `${formatDayShort(toISODate(d))} · ${time}`
 }
 
+/**
+ * A delivery, return or move. Project runs open at /customer/projects/:id/runs/:runId,
+ * a direct order's at /customer/orders/:orderId/runs/:runId; either way the run says which.
+ */
 export default function RunDetailScreen() {
-  const { id, runId } = useParams<{ id: string; runId: string }>()
-  const project = useProject(id)
+  const { runId } = useParams<{ runId: string }>()
   const run = useRunById(runId)
-  if (!project || !run) {
+  const booking = useProjectOps((s) => s.bookings.find((b) => b.id === run?.bookingId))
+  const projects = useProjects((s) => s.projects)
+  if (!run || (run.projectId && !projects.some((p) => p.id === run.projectId))) {
     return (
       <Screen header={<AppBar title="Delivery" />}>
         <EmptyState icon={PackageIcon} title="Delivery not found" action={<Button onClick={() => nav.pop()}>Go back</Button>} />
       </Screen>
     )
   }
-  return <RunDetail project={project} run={run} />
+  return <RunDetail places={bookingPlaces(booking ?? { projectId: run.projectId }, projects)} run={run} />
 }
 
 type SheetKind = 'scan' | 'photos' | 'damage' | 'sign' | 'change' | 'reschedule' | 'extend'
 
 /** DELIVERY / RETURN DETAIL */
-function RunDetail({ project, run }: { project: Project; run: Run }) {
+function RunDetail({ places, run }: { places: Place[]; run: Run }) {
   const popup = usePopup()
   const myName = useDisplayName()
   const updateRun = useProjectOps((s) => s.updateRun)
   const advanceRun = useProjectOps((s) => s.advanceRun)
   const extendBooking = useProjectOps((s) => s.extendBooking)
   const booking = useProjectOps((s) => s.bookings.find((b) => b.id === run.bookingId))
-  const board = useProjectOps((s) => s.boards.find((b) => b.id === booking?.boardId))
+  const boards = useProjectOps((s) => s.boards)
   const query = useQuery()
   // Arriving from Home → "Scan at handover" opens the tag scan straight away.
   const [sheet, setSheet] = useState<{ kind: SheetKind | null; key: number }>(() => ({
@@ -81,7 +86,9 @@ function RunDetail({ project, run }: { project: Project; run: Run }) {
   const openSheet = (kind: SheetKind) => setSheet((s) => ({ kind, key: s.key + 1 }))
   const closeSheet = () => setSheet((s) => ({ ...s, kind: null }))
 
-  const lines = (board?.lines ?? []).filter((l) => run.lineIds.includes(l.id))
+  // A move can carry items from several of the project's boards; a direct order keeps its own.
+  const pool = run.projectId ? boards.filter((b) => b.projectId === run.projectId).flatMap((b) => b.lines) : (booking?.lines ?? [])
+  const lines = pool.filter((l) => run.lineIds.includes(l.id))
   const stages = STAGES[run.kind]
   const checkAt = CHECK_STAGE[run.kind]
   const checkOpen = run.stage >= checkAt
@@ -92,7 +99,7 @@ function RunDetail({ project, run }: { project: Project; run: Run }) {
   const locked = !!run.check.lockedAt || windowClosed
   const vendor = run.vendorId ? vendorById(run.vendorId) : null
   const mode = TRANSPORT_MODES.find((m) => m.id === run.mode)
-  const loc = project.locations.find((l) => l.id === (run.kind === 'move' ? run.toLocationId : run.locationId))
+  const loc = places.find((l) => l.id === (run.kind === 'move' ? run.toLocationId : run.locationId))
   const allScanned = lines.length > 0 && lines.every((l) => run.check.scanned.includes(l.id))
   const photoCount = lines.filter((l) => run.check.photos[l.id]?.length).length
   const damageCount = Object.keys(run.check.damage).length
@@ -275,7 +282,7 @@ function RunDetail({ project, run }: { project: Project; run: Run }) {
             <MapPinIcon size={16} weight="fill" className="shrink-0 text-accent" />
             {loc?.name ?? 'Location not set'}
           </p>
-          {run.kind === 'move' && <p className="mt-0.5 text-[13px] text-muted">From {locationName(project, run.locationId)}</p>}
+          {run.kind === 'move' && <p className="mt-0.5 text-[13px] text-muted">From {locationName({ locations: places }, run.locationId)}</p>}
           {loc && <p className="mt-0.5 text-[13px] leading-snug text-muted">{loc.address}</p>}
           <p className="mt-1.5 flex items-center gap-1.5 text-[13px] text-fg-2">
             <CalendarBlankIcon size={15} className="text-muted" /> {formatDayShort(run.date)} · {run.window}

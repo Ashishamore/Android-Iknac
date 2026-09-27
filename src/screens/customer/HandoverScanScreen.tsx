@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn'
 import { formatDayShort } from '@/lib/dates'
 import { haptic } from '@/lib/haptics'
 import { sleep } from '@/lib/hooks'
-import { checkDue, handoverRuns, runTitle, type Run } from '@/lib/ops'
+import { bookingSource, checkDue, handoverRuns, runPath, runTitle, type Run } from '@/lib/ops'
 import { nav } from '@/navigation'
 import { BottomSheet } from '@/overlays/BottomSheet'
 import { usePopup } from '@/overlays/popupContext'
@@ -39,7 +39,7 @@ export default function HandoverScanScreen() {
       alive.current = false
     }
   }, [])
-  const projectName = (r: Run) => projects.find((p) => p.id === r.projectId)?.name ?? 'Project'
+  const projectName = (r: Run) => bookingSource(r, projects)
 
   const scan = async (run: Run) => {
     if (phase !== 'idle') return
@@ -64,7 +64,7 @@ export default function HandoverScanScreen() {
       })
       popup.toast(run.kind === 'return' ? 'Pickup confirmed · check the props before they leave' : 'Arrival confirmed · 30 minutes to check', { tone: 'success' })
     }
-    nav.replace(`/customer/projects/${run.projectId}/runs/${run.id}?check=scan`)
+    nav.replace(`${runPath(run)}?check=scan`)
   }
 
   return (

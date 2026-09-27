@@ -6,12 +6,14 @@ import {
   EnvelopeSimpleIcon,
   FolderSimpleIcon,
   InfoIcon,
+  KanbanIcon,
   LinkSimpleIcon,
   MagnifyingGlassIcon,
   PaperPlaneRightIcon,
   PencilSimpleIcon,
   PlusIcon,
   ShareNetworkIcon,
+  ShoppingCartSimpleIcon,
   SparkleIcon,
   TrashIcon,
   WhatsappLogoIcon,
@@ -28,7 +30,7 @@ import { SwapSheet } from '@/components/studio/SwapSheet'
 import { CATEGORY_ICON, propById, vendorById, type RentalProp } from '@/data/props'
 import { VERSION_META, type VersionId } from '@/data/studio'
 import { cn } from '@/lib/cn'
-import { formatDateRangeShort, timeAgo } from '@/lib/dates'
+import { formatDateRangeShort, timeAgo, todayISO } from '@/lib/dates'
 import { formatINR } from '@/lib/format'
 import { haptic } from '@/lib/haptics'
 import { sleep } from '@/lib/hooks'
@@ -39,6 +41,7 @@ import { nav, useBackHandler, useParams } from '@/navigation'
 import { BottomSheet } from '@/overlays/BottomSheet'
 import { Menu } from '@/overlays/Menu'
 import { usePopup } from '@/overlays/popupContext'
+import { nextRentDates, useCart } from '@/store/cart'
 import { useProjectOps } from '@/store/projectOps'
 import { activeProjects, useProject, useProjects } from '@/store/projects'
 import { useTrackBoard } from '@/store/recent'
@@ -80,6 +83,7 @@ function BoardView({ board }: { board: Board }) {
   const ensureAiBoard = useProjectOps((s) => s.ensureAiBoard)
   const addLines = useProjectOps((s) => s.addLines)
   const linkAiBoard = useProjectOps((s) => s.updateBoard)
+  const addToCart = useCart((s) => s.addMany)
 
   const [activeSlot, setActiveSlot] = useState<string | null>(null)
   const [sheet, setSheet] = useState<{ kind: SheetKind | null; slotId: string | null; key: number }>({ kind: null, slotId: null, key: 0 })
@@ -159,6 +163,33 @@ function BoardView({ board }: { board: Board }) {
     setRebuilding(false)
     setActiveSlot(null)
     popup.toast(`Board rebuilt · ${useStudio.getState().credits} credits left`, { tone: 'success' })
+  }
+
+  /** "Add all to…": the cart (rent now, no project) or a project board. */
+  const addAllTo = async () => {
+    const ids = version.items.map((it) => it.propId).filter((x): x is string => !!x)
+    if (!ids.length) return popup.toast('No props in this version yet', { tone: 'info' })
+    const choice = await popup.actionSheet({
+      title: `Add all ${ids.length} props to…`,
+      description: `Version ${version.id} · ${formatINR(cost.total)}`,
+      options: [
+        { id: 'cart', label: 'Cart', description: 'Rent them in one order. No project needed', icon: ShoppingCartSimpleIcon },
+        { id: 'project', label: project ? project.name : 'A project', description: 'Plan them on a project board and book later', icon: KanbanIcon },
+      ],
+    })
+    if (choice === 'cart') addAllToCart(ids)
+    else if (choice === 'project') addAll()
+  }
+
+  const addAllToCart = (ids: string[]) => {
+    const { from, to } = board.limits
+    const dates = from && to && from >= todayISO() ? { from, to } : nextRentDates(useCart.getState().dates)
+    const added = addToCart(ids, dates)
+    haptic('success')
+    popup.toast(added ? `${added} prop${added === 1 ? '' : 's'} added to your cart` : 'Already in your cart', {
+      tone: 'success',
+      action: { label: 'View cart', onClick: () => nav.push('/customer/cart') },
+    })
   }
 
   const addAll = () => {
@@ -256,8 +287,8 @@ function BoardView({ board }: { board: Board }) {
             <Button size="lg" variant="secondary" icon={ArrowsClockwiseIcon} className="flex-1 px-4" onClick={rebuild}>
               Rebuild
             </Button>
-            <Button size="lg" className="flex-[1.5] whitespace-nowrap px-4" onClick={addAll}>
-              Add all to project
+            <Button size="lg" className="flex-[1.5] whitespace-nowrap px-4" onClick={addAllTo}>
+              Add all to…
             </Button>
           </div>
         }

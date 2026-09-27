@@ -1,19 +1,21 @@
 import {
   HeartIcon,
   KanbanIcon,
-  MagnifyingGlassIcon,
   PackageIcon,
   PaintBrushIcon,
   RulerIcon,
   SealCheckIcon,
   ShareNetworkIcon,
+  ShoppingCartSimpleIcon,
   StarIcon,
   TruckIcon,
 } from '@phosphor-icons/react'
 import { useState } from 'react'
+import { CartButton } from '@/components/CartButton'
 import { BoardSheet } from '@/components/discover/BoardSheet'
 import { VendorCard } from '@/components/discover/VendorCard'
 import { PropCard, PropThumb } from '@/components/PropCard'
+import { RentSheet } from '@/components/RentSheet'
 import { CATEGORY_SIZE } from '@/data/profile'
 import { PROPS, propById, vendorById } from '@/data/props'
 import { cn } from '@/lib/cn'
@@ -23,13 +25,14 @@ import { haptic } from '@/lib/haptics'
 import { isFreeOn, resultsPath, similarity } from '@/lib/search'
 import { nav, useParams } from '@/navigation'
 import { usePopup } from '@/overlays/popupContext'
+import { useCart } from '@/store/cart'
 import { usePrefs } from '@/store/prefs'
 import { activeProjects, useProjects } from '@/store/projects'
 import { useTrackProp } from '@/store/recent'
 import { useSaved } from '@/store/saved'
 import { AppBar, Button, Card, EmptyState, IconButton, Screen, SectionHeader, Tag } from '@/ui'
 
-/** A prop's listing: photo, price, vendor, availability, similar props, add to board. */
+/** A prop's listing: photo, price, vendor, availability, similar props · Rent now / add to cart, or add to a project. */
 export default function PropDetailScreen() {
   const { id } = useParams<{ id: string }>()
   const prop = propById(id)
@@ -56,6 +59,8 @@ function Listing({ propId }: { propId: string }) {
   const size = CATEGORY_SIZE[prop.category]
   const project = activeProjects(useProjects((s) => s.projects))[0]
   const [boardOpen, setBoardOpen] = useState(false)
+  const [rent, setRent] = useState({ key: 0, open: false })
+  const inCart = useCart((s) => s.items.find((it) => it.propId === prop.id))
   const today = todayISO()
   const days = Array.from({ length: 14 }, (_, i) => addDays(today, i))
   const upcoming = prop.booked.filter(([, e]) => e >= today)
@@ -95,18 +100,36 @@ function Listing({ propId }: { propId: string }) {
                 }}
               />
               <IconButton icon={ShareNetworkIcon} label="Share" onClick={share} />
+              <CartButton />
             </>
           }
         />
       }
       footer={
-        <div className="flex gap-3 @medium:mx-auto @medium:max-w-xl">
-          <Button size="lg" variant="secondary" icon={MagnifyingGlassIcon} className="flex-1" onClick={() => nav.push(resultsPath({ similarTo: prop.id }))}>
-            Similar
-          </Button>
-          <Button size="lg" icon={KanbanIcon} className="flex-[1.4]" onClick={() => setBoardOpen(true)}>
-            Add to board
-          </Button>
+        // Two ways to rent: straight away (cart / Rent now → My orders), or plan it on a project board.
+        <div className="@medium:mx-auto @medium:max-w-xl">
+          {inCart && (
+            <button
+              type="button"
+              onClick={() => nav.push('/customer/cart')}
+              className="mb-2.5 flex w-full items-center gap-2 text-left text-[13px] font-medium text-fg-2"
+            >
+              <ShoppingCartSimpleIcon size={16} weight="fill" className="shrink-0 text-accent" />
+              <span className="min-w-0 flex-1 truncate">
+                In your cart · {inCart.qty > 1 && `${inCart.qty} × `}
+                {formatDateRangeShort(inCart.from, inCart.to)}
+              </span>
+              <span className="shrink-0 font-semibold text-accent">View cart</span>
+            </button>
+          )}
+          <div className="flex gap-3">
+            <Button size="lg" variant="secondary" icon={KanbanIcon} className="flex-1 px-4" onClick={() => setBoardOpen(true)}>
+              Add to project
+            </Button>
+            <Button size="lg" className="flex-1 px-4" onClick={() => setRent((s) => ({ key: s.key + 1, open: true }))}>
+              Rent now
+            </Button>
+          </div>
         </div>
       }
     >
@@ -227,7 +250,8 @@ function Listing({ propId }: { propId: string }) {
           ))}
         </div>
       </div>
-      <BoardSheet open={boardOpen} onClose={() => setBoardOpen(false)} propIds={[prop.id]} />
+      <BoardSheet open={boardOpen} onClose={() => setBoardOpen(false)} propIds={[prop.id]} title="Add to project" />
+      <RentSheet key={rent.key} open={rent.open} onClose={() => setRent((s) => ({ ...s, open: false }))} propId={prop.id} />
     </Screen>
   )
 }

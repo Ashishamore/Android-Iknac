@@ -3,8 +3,7 @@ import { RUN_ICON, STAGES, TRANSPORT_MODES } from '@/data/ops'
 import { cn } from '@/lib/cn'
 import { formatDayShort } from '@/lib/dates'
 import { formatINR } from '@/lib/format'
-import { runPlace, runTitle, stageTone, type Run } from '@/lib/ops'
-import type { Project } from '@/store/projects'
+import { runPlace, runTitle, stageTone, type Place, type Run } from '@/lib/ops'
 import { IconTile, Tag } from '@/ui'
 
 /** A delivery, return or move in a list: what, when, where, stage and cost. */
@@ -17,7 +16,8 @@ export function RunRow({
   className,
 }: {
   run: Run
-  project: Pick<Project, 'locations'>
+  /** Where the run can go: a project's locations, or a direct order's address. */
+  project: { locations: Place[] }
   onClick: () => void
   showDate?: boolean
   showCost?: boolean

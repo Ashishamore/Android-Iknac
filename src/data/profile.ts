@@ -1,4 +1,5 @@
 /** Mock data for the Profile area: plans, languages, notifications, help and reviews. */
+import { BuildingsIcon, FilmSlateIcon, HouseIcon, MapPinIcon, WarehouseIcon, type Icon } from '@phosphor-icons/react'
 import type { Category } from './props'
 
 export type PlanId = 'free' | 'pro' | 'studio'
@@ -92,6 +93,14 @@ export const REVIEW_TAGS = ['On time', 'As described', 'Great condition', 'Helpf
 
 export const ADDRESS_LABELS = ['Office', 'Studio', 'Warehouse', 'Home', 'Other'] as const
 export type AddressLabel = (typeof ADDRESS_LABELS)[number]
+
+export const ADDRESS_ICON: Record<AddressLabel, Icon> = {
+  Office: BuildingsIcon,
+  Studio: FilmSlateIcon,
+  Warehouse: WarehouseIcon,
+  Home: HouseIcon,
+  Other: MapPinIcon,
+}
 
 export const SUPPORT = { phone: '18001203456', email: 'help@propsrental.in', whatsapp: '919876500000' }
 

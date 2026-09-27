@@ -126,7 +126,13 @@ export default function ProfileTab() {
 
         <ListGroup title="Work" className="mt-6">
           <ListItem icon={KanbanIcon} iconTone="brand" title="My boards" subtitle={`${boards.length} project boards · ${aiBoards} AI boards`} onClick={go('boards')} />
-          <ListItem icon={ReceiptIcon} iconTone="brand" title="All bookings" subtitle={`${bookings.length} bookings · ${active} active`} onClick={go('bookings')} />
+          <ListItem
+            icon={ReceiptIcon}
+            iconTone="brand"
+            title="My orders"
+            subtitle={`${bookings.length} orders · ${active} active`}
+            onClick={() => nav.push('/customer/orders')}
+          />
         </ListGroup>
 
         <ListGroup title="Money" className="mt-6">

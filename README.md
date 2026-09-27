@@ -53,7 +53,9 @@ Each side's tabs and screens are defined in `src/app/routes.tsx` (`AUTH_APP`, `C
 | --- | --- |
 | **Greeting** | Time-of-day greeting and the notifications bell |
 | **Promotions banner** | Swipeable 16:9 banners, each opening matching results |
-| **Quick actions** | *New project* · *Scan at handover* (badge = checks due) · *Track delivery* (badge = runs under way; opens the project's Deliveries tab) · *Saved items* |
+| **Greeting** bar | The cart (badge = props in it) and the notifications bell |
+| **Quick actions** | *My orders* · *New project* (the two ways to rent, side by side) · *Scan at handover* (badge = checks due) · *Track delivery* (badge = runs under way; opens the project's Deliveries tab, or the direct order's tracking) · *Saved items* |
+| **Track your order** | Shown while a direct order is open: its status, a 5-step progress bar and what's next. Opens the order's tracking |
 | **Continue where you left off** | The last project or AI board you opened, or else your latest board |
 | **Describe the scene** | Opens AI Studio. The example chips pre-fill the brief; *Photo* and *Script* open those modes |
 | **Trending props** | Most booked this week, *See all* |
@@ -88,7 +90,7 @@ Each side's tabs and screens are defined in `src/app/routes.tsx` (`AUTH_APP`, `C
   - The search bar and applied-filter chips.
   - Sort: Nearest · Price · Availability · Rating · Newest.
   - View: grid · list · map.
-- **Select multiple → Add to board:** puts the props on one of your project boards, or on a new one.
+- **Select multiple → Add to cart** (rent without a project, on the search's dates) **or Add to board** (one of your project boards, or a new one).
 - **Save this search.**
 - **More results:**
   - "N more in Maharashtra / rest of India".
@@ -106,6 +108,35 @@ The results URL takes filters, so you can deep-link to any search:
 - `filters=open` opens the Filters sheet.
 
 The mock catalogue lives in `src/data/props.ts`, and the search logic in `src/lib/search.ts`.
+
+## Two ways to rent (Art Director)
+
+A project is optional. Every prop listing offers both:
+
+| Way | How | Where it ends up |
+| --- | --- | --- |
+| **Rent now** (regular) | Listing → *Rent now* → dates and quantity → *Rent now* (straight to checkout) or *Add to cart*. Also from Discover (*Select multiple → Add to cart*) and AI Studio (*Add all to… → Cart*) | **My orders** (`/customer/orders`), as a *Direct order* |
+| **Project** | Listing → *Add to project* → a board → hold, share, then *Book items* on the board (see Projects below) | The project (boards, deliveries, money, team), and also in My orders |
+
+**Cart** (`/customer/cart`): props grouped by vendor, each with its own dates and quantity (tap to edit, ✕ to remove with Undo). *Rental dates* sets one range for everything. A prop that's booked on its dates is flagged and stays behind at checkout. *Planning a whole shoot?* puts the cart's props on a project board instead.
+
+**Checkout** (`/customer/checkout`, 4 steps): Where and when (a saved address, or *Add an address*) → Transport → Payment → Vendor terms → **Order placed** → *Track order*. `?prop=…&from=…&to=…&qty=…` checks out a single prop (*Rent now*).
+
+**My orders** (`/customer/orders`): All · Direct · Projects, then Active · Upcoming · Completed. Each open order shows a 5-step progress bar and what's next (or what needs you).
+
+**Tracking an order** (`/customer/orders/:id`, e.g. `/customer/orders/BK-1003`). Project bookings open here too.
+
+| Section | What's in it |
+| --- | --- |
+| **Tracking** | Where the whole order is: *Order placed → Packed & on its way → Delivered → Picked up for return → Returned · deposit back*, with times, and a headline ("Arrives Mon, 28 Sept", "On its way", "Arrived") |
+| **Needs you** | A photo check that's due (30-minute window on arrival, before a return pickup) or money to pay |
+| **Deliveries & returns** | One per vendor, each with its stage. Tap one for live tracking, the driver, the photo check, reschedule and extend (`/customer/orders/:id/runs/:runId`) |
+| **Delivering to · Items · Money** | Address, who to call, *Directions*; items by vendor; total, paid, deposit |
+| **Footer** | *Invoice*, and *Start the check* / *Track delivery* / *Track return* / *Rent again* (or *Open board* for a project booking) |
+
+Ways in: Home's **Track your order** card (the direct order that needs you or moves next) and *Track delivery* quick action, *My orders*, and *Track order* right after checkout.
+
+Seed data includes a direct order, **BK-1003** (a camera kit, guitar and plants for a product shoot, delivered to the office).
 
 ## Projects (Art Director)
 
@@ -176,7 +207,7 @@ AI Studio turns a scene into a prop board. The AI is simulated: it matches keywo
 - **Versions:** A (best match), B (budget), C (premium), with a budget bar.
 - **Items used:** Swap · Show similar (opens Discover) · Remove, with Undo.
 - **Comments, Share** (link, WhatsApp, email) and **Version history** with Restore.
-- **Rebuild** (1 credit) · **Add all to project** (fills a project board of the same name, or the board that asked AI).
+- **Rebuild** (1 credit) · **Add all to…** the **cart** (rent them without a project, on the board's dates) or a **project** (fills a project board of the same name, or the board that asked AI).
 
 ## Profile (Art Director)
 
@@ -187,7 +218,7 @@ AI Studio turns a scene into a prop board. The AI is simulated: it matches keywo
 | **Me** → `edit` | Photo (camera, gallery or sample), name, production house, role, city, email, verification (mobile, government ID check, company GST), with a *Discard changes?* confirm |
 | **Saved items** → `saved` | Props · Vendors (remove with Undo) · Searches (run, alerts, delete). `?tab=vendors` opens a tab. Save a vendor from any prop listing |
 | **My boards** → `boards` | Project boards grouped by project · AI boards (filter by project) |
-| **All bookings** → `bookings` | All · Active · Upcoming · Completed. Each booking opens a sheet with items, deliveries and returns, money, *Invoice* and *Open board* |
+| **My orders** → `/customer/orders` | Direct orders and project bookings (see *Two ways to rent*). The old `/customer/profile/bookings` link opens it too |
 | **Plan** → `plan` | Current plan, usage (AI credits, active projects, team seats), monthly/yearly, Starter · Pro · Studio. Upgrading adds that plan's credits |
 | **Payments & deposits** → `payments` | Saved UPI IDs and cards (make default, remove with Undo, add with validation and a Luhn check), deposits held or refunded, recent payments |
 | **Invoices & GST** → `invoices` | GST details (edit, then verify the GSTIN), totals, invoices filtered Paid / Pending, *Download GST summary (CSV)* |
@@ -302,11 +333,11 @@ src/
   overlays/     BottomSheet, Dialog, Menu, usePopup() (toast/confirm/alert/actionSheet/loading)
   ui/           design-system components (Button, ListItem, TextField, Tabs, …)
   screens/      auth/ (welcome, login, OTP) · customer/ (art director) · owner/ (prop owner) · shared/
-  components/   app building blocks: PropCard / PropRow, project cards, discover/ (search bar, filters, map, sheets),
+  components/   app building blocks: PropCard / PropRow, RentSheet, CartButton, AddressSheet, project cards, ops/BookingFlow (checkout and board booking), discover/ (search bar, filters, map, sheets),
                 studio/ (scene canvas, credits, slot / swap / history sheets), usePhotoPicker
   data/         mock catalogue (props, vendors, collections), AI Studio rules and packs, ops, profile (plans, FAQs…), owner, notifications
   lib/          dates, money and units, colour, search, studio (simulated AI), ops (boards, bookings, runs), owner (stock, orders, diary, payouts), vendor, image
-  store/        zustand stores: prefs, session, projects, projectOps, discover, studio, saved, profile, recent, owner, notifications, resetDemoData()
+  store/        zustand stores: prefs, session, projects, projectOps (bookings and direct orders), cart, discover, studio, saved, profile, recent, owner, notifications, resetDemoData()
 ```
 
 The bottom navigation appears automatically once `TABS` in `src/app/routes.tsx` has two or more entries.

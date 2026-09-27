@@ -12,6 +12,7 @@ import {
   MagnifyingGlassIcon,
   MapPinIcon,
   MapTrifoldIcon,
+  ShoppingCartSimpleIcon,
   SlidersHorizontalIcon,
   TruckIcon,
   XIcon,
@@ -28,7 +29,7 @@ import { useSearchTools } from '@/components/discover/useSearchTools'
 import { PropCard, PropMeta, PropRow, PropThumb } from '@/components/PropCard'
 import { collectionById, propById, vendorById } from '@/data/props'
 import { cn } from '@/lib/cn'
-import { formatDateRangeShort } from '@/lib/dates'
+import { formatDateRangeShort, todayISO } from '@/lib/dates'
 import { haptic } from '@/lib/haptics'
 import { EASE_OUT } from '@/lib/motion'
 import {
@@ -56,6 +57,7 @@ import {
 import { nav, useBackHandler, useQuery, useRouteState } from '@/navigation'
 import { BottomSheet } from '@/overlays/BottomSheet'
 import { usePopup } from '@/overlays/popupContext'
+import { nextRentDates, useCart } from '@/store/cart'
 import { useDiscover } from '@/store/discover'
 import { activeProjects, useProjects } from '@/store/projects'
 import { AppBar, Button, FadeSwitch, IconButton, OptionList, Screen, SectionHeader } from '@/ui'
@@ -81,7 +83,7 @@ function initialFilters(query: URLSearchParams): Filters {
 
 type SheetKind = 'filters' | 'sort' | 'save' | 'board'
 
-/** Discover results: chips, sort, grid / list / map, select → add to board, save search. */
+/** Discover results: chips, sort, grid / list / map, select → add to cart or to a board, save search. */
 export default function DiscoverResultsScreen() {
   const query = useQuery()
   const route = useRouteState<ResultsRouteState>()
@@ -97,6 +99,7 @@ export default function DiscoverResultsScreen() {
   const results = useMemo(() => searchProps(filters, sort), [filters, sort])
   const wider = useMemo(() => widerCounts(filters), [filters])
 
+  const addMany = useCart((s) => s.addMany)
   const addRecent = useDiscover((s) => s.addRecent)
   const savedList = useDiscover((s) => s.saved)
   const saveSearch = useDiscover((s) => s.saveSearch)
@@ -114,6 +117,18 @@ export default function DiscoverResultsScreen() {
   }
   useBackHandler(selecting, exitSelection)
   const toggleSelected = (id: string) => setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : [...s, id]))
+
+  /** Rent the selection without a project, on the search's dates if it has them. */
+  const addToCart = () => {
+    const dates = filters.from && filters.to && filters.from >= todayISO() ? { from: filters.from, to: filters.to } : nextRentDates(useCart.getState().dates)
+    const added = addMany(selected, dates)
+    haptic('success')
+    exitSelection()
+    popup.toast(added ? `${added} prop${added === 1 ? '' : 's'} added to your cart` : 'Already in your cart', {
+      tone: 'success',
+      action: { label: 'View cart', onClick: () => nav.push('/customer/cart') },
+    })
+  }
 
   // Discover's "Filters" shortcut opens the sheet once the screen has slid in.
   useEffect(() => {
@@ -233,9 +248,14 @@ export default function DiscoverResultsScreen() {
       header={header}
       footer={
         selecting ? (
-          <Button size="lg" block icon={KanbanIcon} disabled={!selected.length} onClick={() => openSheet('board')}>
-            {selected.length ? `Add ${selected.length} to board` : 'Select props to add'}
-          </Button>
+          <div className="flex gap-3">
+            <Button size="lg" variant="secondary" icon={KanbanIcon} className="flex-1 px-4" disabled={!selected.length} onClick={() => openSheet('board')}>
+              Add to board
+            </Button>
+            <Button size="lg" icon={ShoppingCartSimpleIcon} className="flex-1 px-4" disabled={!selected.length} onClick={addToCart}>
+              Add to cart
+            </Button>
+          </div>
         ) : undefined
       }
     >

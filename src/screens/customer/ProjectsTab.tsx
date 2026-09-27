@@ -1,4 +1,4 @@
-import { ArchiveIcon, FilmSlateIcon, PlusIcon } from '@phosphor-icons/react'
+import { ArchiveIcon, FilmSlateIcon, PlusIcon, ShoppingBagIcon } from '@phosphor-icons/react'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { ProjectCard } from '@/components/project'
@@ -46,11 +46,16 @@ export default function ProjectsTab() {
             <EmptyState
               icon={FilmSlateIcon}
               title="No active projects"
-              description="Create a project for your shoot to plan dates, budget, boards and deliveries."
+              description="Projects are optional. Use one to plan a shoot’s dates, budget, boards, deliveries and team. Just need a few props? Rent them straight from any listing."
               action={
-                <Button icon={PlusIcon} onClick={newProject}>
-                  Create project
-                </Button>
+                <div className="flex flex-col items-center gap-2">
+                  <Button icon={PlusIcon} onClick={newProject}>
+                    Create project
+                  </Button>
+                  <Button variant="ghost" icon={ShoppingBagIcon} onClick={() => nav.push('/customer/orders')}>
+                    My orders
+                  </Button>
+                </div>
               }
             />
           ) : (

@@ -13,6 +13,7 @@ import {
 } from '@phosphor-icons/react'
 import { motion } from 'motion/react'
 import { useMemo, useState } from 'react'
+import { CartButton } from '@/components/CartButton'
 import { SearchBarButton } from '@/components/discover/SearchBar'
 import { useSearchTools } from '@/components/discover/useSearchTools'
 import { SavedSearchRow } from '@/components/discover/SavedSearchRow'
@@ -74,7 +75,12 @@ export default function DiscoverTab() {
               Andheri West, {HOME_CITY}
             </span>
           }
-          actions={<IconButton icon={MapTrifoldIcon} label="Map view" onClick={openMap} />}
+          actions={
+            <>
+              <IconButton icon={MapTrifoldIcon} label="Map view" onClick={openMap} />
+              <CartButton />
+            </>
+          }
         >
           <div className="px-4 pb-3">
             <SearchBarButton hints={HINTS} onPress={openSearch} onVoice={tools.startVoice} onPhoto={tools.startPhoto} />

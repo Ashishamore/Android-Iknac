@@ -16,13 +16,16 @@ import VerifyScreen from '@/screens/auth/VerifyScreen'
 import WelcomeScreen from '@/screens/auth/WelcomeScreen'
 import AiStudioTab from '@/screens/customer/AiStudioTab'
 import BookingFlowScreen from '@/screens/customer/BookingFlowScreen'
+import CartScreen from '@/screens/customer/CartScreen'
+import CheckoutScreen from '@/screens/customer/CheckoutScreen'
 import DiscoverResultsScreen from '@/screens/customer/DiscoverResultsScreen'
 import DiscoverTab from '@/screens/customer/DiscoverTab'
 import HomeTab from '@/screens/customer/HomeTab'
 import NotificationsScreen from '@/screens/customer/NotificationsScreen'
+import OrderScreen from '@/screens/customer/OrderScreen'
+import OrdersScreen from '@/screens/customer/OrdersScreen'
 import ProfileTab from '@/screens/customer/ProfileTab'
 import AddressesScreen from '@/screens/customer/profile/AddressesScreen'
-import BookingsScreen from '@/screens/customer/profile/BookingsScreen'
 import EditProfileScreen from '@/screens/customer/profile/EditProfileScreen'
 import HelpScreen from '@/screens/customer/profile/HelpScreen'
 import InvoicesScreen from '@/screens/customer/profile/InvoicesScreen'
@@ -120,12 +123,19 @@ export const CUSTOMER_APP: AppConfig = {
     { path: '/customer/projects/:id/runs/:runId', component: RunDetailScreen },
     { path: '/customer/projects/:id', component: ProjectDetailScreen },
     { path: '/customer/props/:id', component: PropDetailScreen },
+    // Renting without a project: cart → checkout → My orders.
+    { path: '/customer/cart', component: CartScreen },
+    { path: '/customer/checkout', component: CheckoutScreen, presentation: 'modal' },
+    { path: '/customer/orders', component: OrdersScreen },
+    { path: '/customer/orders/:id', component: OrderScreen },
+    { path: '/customer/orders/:orderId/runs/:runId', component: RunDetailScreen },
     { path: '/customer/vendors/:id', component: VendorProfileScreen },
     { path: '/customer/scan', component: HandoverScanScreen, presentation: 'modal' },
     { path: '/customer/profile/edit', component: EditProfileScreen, presentation: 'modal' },
     { path: '/customer/profile/saved', component: SavedItemsScreen },
     { path: '/customer/profile/boards', component: MyBoardsScreen },
-    { path: '/customer/profile/bookings', component: BookingsScreen },
+    // Old "All bookings" link.
+    { path: '/customer/profile/bookings', component: OrdersScreen },
     { path: '/customer/profile/plan', component: PlanScreen },
     { path: '/customer/profile/payments', component: PaymentsScreen },
     { path: '/customer/profile/invoices', component: InvoicesScreen },

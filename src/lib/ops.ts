@@ -52,6 +52,13 @@ export interface ProjectBoard {
   createdAt: number
 }
 
+/** Somewhere a booking is delivered to: a project's shoot location, or a saved address. */
+export interface Place {
+  id: string
+  name: string
+  address: string
+}
+
 export type PaymentMethod = 'upi' | 'card' | 'netbanking' | 'po'
 
 export interface Amounts {
@@ -64,12 +71,23 @@ export interface Amounts {
   total: number
 }
 
+/**
+ * A booking. Made from a project board, or a **direct order**: props rented
+ * straight from the cart or a listing, with no project (`projectId` null).
+ */
 export interface Booking {
   id: string
-  projectId: string
-  boardId: string
+  /** null for a direct order. */
+  projectId: string | null
+  /** The project board it was booked from (null for a direct order). */
+  boardId: string | null
   lineIds: string[]
+  /** Direct orders keep their own items; project bookings point at board lines. */
+  lines?: BoardLine[]
+  /** Direct orders: the saved address it goes to (a copy, so later edits don't move it). */
+  place?: Place | null
   createdAt: number
+  /** Project location id, or the saved address id for a direct order. */
   deliverTo: string | null
   deliveryDate: string
   deliveryWindow: string
@@ -100,7 +118,8 @@ export interface PhotoCheck {
 /** A delivery, return or move between locations. */
 export interface Run {
   id: string
-  projectId: string
+  /** null for a direct order's runs. */
+  projectId: string | null
   bookingId: string
   kind: RunKind
   /** null for moves (partner vehicle). */
@@ -214,6 +233,31 @@ export function blockSummary(
   return [day, loc, block.time !== 'All day' ? block.time : null].filter(Boolean).join(' · ')
 }
 
+/* ── Bookings & direct orders ────────────────────────────────────────────── */
+
+export const DIRECT_ORDER = 'Direct order'
+
+/** The items in a booking: a direct order's own, or the board lines it booked. */
+export function bookingLines(booking: Booking, boards: ProjectBoard[]): BoardLine[] {
+  if (booking.lines) return booking.lines
+  return (boards.find((b) => b.id === booking.boardId)?.lines ?? []).filter((l) => booking.lineIds.includes(l.id))
+}
+
+/** "Monsoon Ad Shoot", or "Direct order" for props rented without a project. */
+export const bookingSource = (booking: Pick<Booking, 'projectId'>, projects: { id: string; name: string }[]) =>
+  booking.projectId ? (projects.find((p) => p.id === booking.projectId)?.name ?? 'Project') : DIRECT_ORDER
+
+/** Where a booking's runs can go: the project's locations, or the order's own address. */
+export function bookingPlaces(booking: Pick<Booking, 'projectId' | 'place'> | undefined, projects: { id: string; locations: Place[] }[]): Place[] {
+  if (!booking) return []
+  if (booking.place) return [booking.place]
+  return projects.find((p) => p.id === booking.projectId)?.locations ?? []
+}
+
+/** The screen for a delivery, return or move. Direct orders' runs live under /customer/orders. */
+export const runPath = (run: Pick<Run, 'id' | 'projectId' | 'bookingId'>) =>
+  run.projectId ? `/customer/projects/${run.projectId}/runs/${run.id}` : `/customer/orders/${run.bookingId}/runs/${run.id}`
+
 /* ── Runs ────────────────────────────────────────────────────────────────── */
 
 /** Tag tone for a tracking stage: done, needs attention (arrived / on set), or in progress. */
@@ -229,10 +273,10 @@ export function runTitle(run: Run) {
   return `${run.kind === 'delivery' ? 'Delivery' : 'Return'} · ${vendor}`
 }
 
-export const locationName = (project: { locations: { id: string; name: string }[] }, id: string | null) =>
+export const locationName = (project: { locations: Pick<Place, 'id' | 'name'>[] }, id: string | null) =>
   project.locations.find((l) => l.id === id)?.name ?? 'Location not set'
 
-export function runPlace(run: Run, project: { locations: { id: string; name: string }[] }) {
+export function runPlace(run: Run, project: { locations: Pick<Place, 'id' | 'name'>[] }) {
   if (run.kind === 'move') return `${locationName(project, run.locationId)} → ${locationName(project, run.toLocationId)}`
   return `${run.kind === 'delivery' ? 'To' : 'From'} ${locationName(project, run.locationId)}`
 }
@@ -368,16 +412,58 @@ export function budgetUse(boards: ProjectBoard[], bookings: Booking[], now = Dat
   return { booked, reserved, planned }
 }
 
-/** Where a booking is: Upcoming → In transit → On set → Returning → Completed. */
+/** Where a booking is: Upcoming → In transit → On set (a direct order: Delivered) → Returning → Completed. */
 export function bookingStatus(booking: Booking, runs: Run[]): { label: string; tone: Tone; group: 'upcoming' | 'active' | 'completed' } {
   const mine = runs.filter((r) => r.bookingId === booking.id)
   const deliveries = mine.filter((r) => r.kind === 'delivery')
   const returns = mine.filter((r) => r.kind === 'return')
   if (returns.length && returns.every((r) => r.stage >= 5)) return { label: 'Completed', tone: 'success', group: 'completed' }
   if (returns.some((r) => r.stage >= 2)) return { label: 'Returning', tone: 'info', group: 'active' }
-  if (deliveries.length && deliveries.every((r) => r.stage >= 5)) return { label: 'On set', tone: 'success', group: 'active' }
+  if (deliveries.length && deliveries.every((r) => r.stage >= 5)) return { label: booking.projectId ? 'On set' : 'Delivered', tone: 'success', group: 'active' }
   if (deliveries.some((r) => r.stage >= 1)) return { label: 'In transit', tone: 'info', group: 'active' }
   return { label: 'Upcoming', tone: 'neutral', group: 'upcoming' }
+}
+
+/** The steps an order goes through, across all its vendors' deliveries and returns. */
+export const ORDER_STEPS = ['Order placed', 'Packed & on its way', 'Delivered', 'Picked up for return', 'Returned · deposit back'] as const
+
+/**
+ * Where a whole order is: the step reached (index into ORDER_STEPS) and when each
+ * step was reached. A step counts once any vendor starts it, and is done once all have.
+ */
+export function orderProgress(booking: Booking, runs: Run[]) {
+  const mine = runs.filter((r) => r.bookingId === booking.id)
+  const deliveries = mine.filter((r) => r.kind === 'delivery')
+  const returns = mine.filter((r) => r.kind === 'return')
+  const first = (list: Run[], stage: number) => {
+    const t = list.map((r) => r.stageTimes[stage]).filter((x): x is number => !!x)
+    return t.length ? Math.min(...t) : null
+  }
+  const last = (list: Run[], stage: number) =>
+    list.length && list.every((r) => r.stage >= stage) ? Math.max(...list.map((r) => r.stageTimes[stage] ?? 0)) || null : null
+  const reached = [
+    true,
+    deliveries.some((r) => r.stage >= 1),
+    deliveries.length > 0 && deliveries.every((r) => r.stage >= 5),
+    returns.some((r) => r.stage >= 2),
+    returns.length > 0 && returns.every((r) => r.stage >= 5),
+  ]
+  const times = [booking.createdAt, first(deliveries, 1), last(deliveries, 5), first(returns, 2), last(returns, 5)]
+  return { step: reached.lastIndexOf(true), times: times.map((t, i) => (reached[i] ? t : null)) }
+}
+
+/** What the renter has to do on an order now: a photo check that's due, or money to pay. */
+export function orderTodos(booking: Booking, runs: Run[]) {
+  const out: { id: string; title: string; detail: string; run?: Run; pay?: number }[] = []
+  for (const r of runs.filter((x) => x.bookingId === booking.id)) {
+    if (r.kind === 'delivery' && r.stage === 4 && !r.confirmedAt)
+      out.push({ id: r.id, run: r, title: 'Check the delivered items', detail: `${vendorById(r.vendorId!).name} · 30 minutes to scan, photograph and sign` })
+    if (r.kind === 'return' && r.stage === 1 && !r.check.lockedAt)
+      out.push({ id: r.id, run: r, title: 'Photo check before pickup', detail: `${vendorById(r.vendorId!).name} · protects your deposit` })
+  }
+  const due = booking.amounts.total + booking.extras.reduce((n, e) => n + e.amount, 0) - booking.paid - booking.extras.filter((e) => e.paid).reduce((n, e) => n + e.amount, 0)
+  if (due > 0) out.push({ id: 'pay', title: `${formatINR(due)} to pay`, detail: booking.payment.method === 'po' ? `On company PO ${booking.payment.ref}` : 'Extensions and extra charges', pay: due })
+  return out
 }
 
 /** A delivery, return or move that hasn't been handed over yet. */
@@ -399,8 +485,7 @@ export function pendingReviews(bookings: Booking[], runs: Run[], boards: Project
   const out: { booking: Booking; vendorId: string; items: number }[] = []
   for (const b of bookings) {
     if (bookingStatus(b, runs).group !== 'completed') continue
-    const lines = (boards.find((x) => x.id === b.boardId)?.lines ?? []).filter((l) => b.lineIds.includes(l.id))
-    for (const { vendor, items } of byVendor(lines)) {
+    for (const { vendor, items } of byVendor(bookingLines(b, boards))) {
       if (!reviewed.some((r) => r.vendorId === vendor.id && r.bookingId === b.id)) out.push({ booking: b, vendorId: vendor.id, items: items.length })
     }
   }

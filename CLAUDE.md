@@ -48,6 +48,23 @@ Stakeholder prototype of an Android app. It runs full-screen on phones and table
   - `SceneCanvas` draws an illustrated set, or the reference photo, with numbered markers.
   - Photos are downscaled to data URLs (`lib/image.ts`) so they can be stored with the board.
   - `usePhotoPicker` (`src/components/`) is shared by Discover photo search and AI Studio.
+- **Two ways to rent. A project is optional.**
+  - **Direct orders** (the regular flow): a `Booking` with `projectId: null` and `boardId: null`. It keeps its own items in `booking.lines` and a copy of the saved address in `booking.place`. Its runs have `projectId: null`.
+  - Never read a booking's items from its board directly. Use the helpers in `lib/ops.ts`:
+    - `bookingLines(booking, boards)` for the items.
+    - `bookingSource(booking, projects)` for "Monsoon Ad Shoot" or "Direct order".
+    - `bookingPlaces(booking, projects)` for the locations its runs go to.
+    - `runPath(run)` for a run's screen: `/customer/projects/:id/runs/:runId` or `/customer/orders/:orderId/runs/:runId`. `RunDetailScreen` works out which from the run.
+  - `store/cart.ts` (`useCart`, `proto:cart`) holds the cart items (prop, dates, qty) and the last dates picked. `cartLines()` turns them into `BoardLine`s, so pricing and availability work the same as on boards.
+  - `RentSheet` (`src/components/`) is the listing's *Rent now* sheet (*Add to cart* / *Rent now*), and edits an item from the cart. Give it a new `key` on each open. `CartButton` is the app-bar cart with its badge.
+  - `components/ops/BookingFlow.tsx` is the one booking flow:
+    - `project` + `board` → *Book items*, 5 steps, delivered to shoot locations.
+    - `project: null` → *Checkout*, 4 steps with no Items step, delivered to saved addresses (`AddressSheet`).
+    - `BookingFlowScreen` (a board) and `CheckoutScreen` (`/customer/checkout`: the cart, or `?prop=&from=&to=&qty=` for Rent now) are thin wrappers around it. `useProjectOps().book()` stores a direct order's lines when there's no `boardId`.
+  - `OrdersScreen` (`/customer/orders`, also `/customer/profile/bookings`) lists both kinds.
+  - `OrderScreen` (`/customer/orders/:id`) is where any order is tracked. `orderProgress(booking, runs)` gives the step in `ORDER_STEPS` and when each step was reached, across all vendors' runs. `orderTodos(booking, runs)` gives the photo checks that are due and the money to pay.
+  - Home's `TrackOrder` card shows the direct order that needs you, or moves next.
+  - Anywhere props can be added to a project (listing, Discover multi-select, AI Studio), also offer the cart.
 - **Projects** (running a shoot).
   - `store/projects.ts` holds each project's name, dates, budget, locations and `wrapped`.
   - Everything else is in `store/projectOps.ts` (`useProjectOps`, `proto:project-ops`): boards (with their items), bookings, runs (deliveries, returns, moves), members, chat messages and per-project settings.
@@ -62,7 +79,7 @@ Stakeholder prototype of an Android app. It runs full-screen on phones and table
     - `BookingFlowScreen` (`/boards/:boardId/book`, modal, 5 steps).
     - `RunDetailScreen` (`/runs/:runId`: tracking, photo check, sign).
     - `ProjectChatScreen` (`/chat`).
-    - `PropDetailScreen` (`/customer/props/:id`), the listing that every prop card opens.
+    - `PropDetailScreen` (`/customer/props/:id`), the listing that every prop card opens. Its footer is *Add to project* · *Rent now*.
   - Tracking is simulated. The "Demo: next stage" button moves a run through its 6 stages; at "Arrived" the 30-minute deposit window starts.
   - The seeded sample's ids (`pb-cafe`, `run-seed-0`, …) are fixed, so deep links work before anything is saved.
   - There's also a wrapped past shoot, `diwali-tvc` (board `pb-haveli`, booking BK-0998, runs `run-past-N`, all returned). It gives Past, completed bookings, refunds and reviews some history.

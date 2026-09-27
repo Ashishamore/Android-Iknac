@@ -9,7 +9,7 @@ import { Button, Screen } from '@/ui'
 const SLIDES: { icon: Icon; accent: Icon; title: string; text: string }[] = [
   { icon: CompassIcon, accent: FilmSlateIcon, title: 'Find any prop in minutes', text: 'Search by era, category or a photo. See what’s free on your shoot dates, near your set.' },
   { icon: SparkleIcon, accent: CompassIcon, title: 'Brief AI, get a board', text: 'Describe a scene or paste a script page. AI Studio lists what it needs and matches props within budget.' },
-  { icon: PackageIcon, accent: SparkleIcon, title: 'Hold, book and track', text: 'Reserve for 24 hours, book in five steps, then follow every delivery to set, with a photo check on arrival.' },
+  { icon: PackageIcon, accent: SparkleIcon, title: 'Rent now, or plan a project', text: 'Order a few props straight from the listing, or hold and book a whole shoot on project boards. Either way, follow every delivery to set.' },
   { icon: UsersThreeIcon, accent: PackageIcon, title: 'Run the shoot as a team', text: 'Share boards, chat per project, and keep budget, invoices and GST in one place.' },
 ]
 

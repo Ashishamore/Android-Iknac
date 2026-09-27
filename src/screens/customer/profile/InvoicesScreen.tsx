@@ -6,7 +6,7 @@ import { formatDate, toISODate } from '@/lib/dates'
 import { formatINR } from '@/lib/format'
 import { haptic } from '@/lib/haptics'
 import { sleep } from '@/lib/hooks'
-import type { Booking } from '@/lib/ops'
+import { bookingLines, bookingSource, type Booking } from '@/lib/ops'
 import { BottomSheet } from '@/overlays/BottomSheet'
 import { usePopup } from '@/overlays/popupContext'
 import { useProfile } from '@/store/profile'
@@ -51,9 +51,9 @@ export default function InvoicesScreen() {
   const invoiced = bookings.reduce((n, b) => n + totalOf(b) - b.amounts.deposit, 0)
   const gstTotal = bookings.reduce((n, b) => n + b.amounts.gst, 0)
   const pending = bookings.reduce((n, b) => n + totalOf(b) - paidOf(b), 0)
-  const projectName = (b: Booking) => projects.find((p) => p.id === b.projectId)?.name ?? 'Project'
+  const projectName = (b: Booking) => bookingSource(b, projects)
   const current = bookings.find((b) => b.id === invoice.id) ?? null
-  const currentLines = current ? (boards.find((x) => x.id === current.boardId)?.lines ?? []).filter((l) => current.lineIds.includes(l.id)) : []
+  const currentLines = current ? bookingLines(current, boards) : []
 
   const downloadCsv = () => {
     const rows = [

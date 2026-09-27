@@ -15,7 +15,7 @@ import { addDays, formatDate, formatDayShort, toISODate } from '@/lib/dates'
 import { formatINR } from '@/lib/format'
 import { haptic } from '@/lib/haptics'
 import { sleep } from '@/lib/hooks'
-import { bookingStatus } from '@/lib/ops'
+import { bookingSource, bookingStatus } from '@/lib/ops'
 import { BottomSheet } from '@/overlays/BottomSheet'
 import { Menu } from '@/overlays/Menu'
 import { usePopup } from '@/overlays/popupContext'
@@ -142,7 +142,7 @@ export default function PaymentsScreen() {
             <div key={b.id} className="group relative flex items-center gap-3 px-4 py-3">
               <IconTile icon={ShieldCheckIcon} tone={done ? 'success' : 'info'} size="sm" />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[15px] font-semibold text-fg">{projects.find((p) => p.id === b.projectId)?.name ?? 'Project'}</p>
+                <p className="truncate text-[15px] font-semibold text-fg">{bookingSource(b, projects)}</p>
                 <p className="truncate text-[13px] text-muted">
                   {b.id} · {done ? `refunded ${refundedOn ? formatDayShort(refundedOn) : ''}` : `back by ${formatDayShort(addDays(b.returnDate, 2))}`}
                 </p>

@@ -19,7 +19,7 @@ import {
 import { DEMO_NAME } from './session'
 import { newId, useProjects } from './projects'
 
-type BookingInput = Omit<Booking, 'id' | 'invoiceNo' | 'createdAt' | 'extras'>
+type BookingInput = Omit<Booking, 'id' | 'invoiceNo' | 'createdAt' | 'extras' | 'lines'>
 
 interface OpsState {
   boards: ProjectBoard[]
@@ -42,6 +42,7 @@ interface OpsState {
   moveLine: (fromBoardId: string, lineId: string, toBoardId: string) => void
   /** The project board fed by an AI Studio board (created if needed). */
   ensureAiBoard: (projectId: string, ai: { id: string; name: string; date: string | null }) => string
+  /** Books board lines, or places a direct order (no `boardId`: the lines are kept on the booking). */
   book: (input: BookingInput, lines: BoardLine[]) => Booking
   payBooking: (bookingId: string, ref: string) => void
   updateRun: (runId: string, patch: Partial<Run>) => void
@@ -223,6 +224,43 @@ function sample() {
     }
   })
 
+  // A direct order: a few props for a quick product shoot, rented without a project.
+  const orderDay = addDays(todayISO(), 2)
+  const orderLines = [
+    seedLine('film-camera', orderDay, orderDay, { id: 'ln-order-0', bookingId: 'BK-1003' }),
+    seedLine('acoustic-guitar', orderDay, orderDay, { id: 'ln-order-1', bookingId: 'BK-1003' }),
+    seedLine('monstera', orderDay, orderDay, { id: 'ln-order-2', bookingId: 'BK-1003', qty: 2 }),
+  ]
+  const b3Base: Booking = {
+    id: 'BK-1003',
+    projectId: null,
+    boardId: null,
+    lineIds: orderLines.map((l) => l.id),
+    lines: orderLines,
+    place: {
+      id: 'addr-office',
+      name: 'Frame & Fable Films',
+      address: '4th Floor, Laxmi Industrial Estate, New Link Road, Andheri West, Mumbai 400053',
+    },
+    createdAt: now - 3 * HOUR,
+    deliverTo: 'addr-office',
+    deliveryDate: addDays(orderDay, -1),
+    deliveryWindow: '5–7 PM',
+    returnDate: orderDay,
+    returnWindow: '8–10 PM',
+    contact: { name: DEMO_NAME.customer, phone: '9876543210' },
+    transport: { filmy: 'vendor', 'powai-greens': 'vendor' },
+    move: null,
+    payment: { method: 'upi', ref: 'rohan@okicici' },
+    amounts: { items: 0, transport: 0, discount: 0, gst: 0, deposit: 0, total: 0 },
+    paid: 0,
+    invoiceNo: 'INV-26-1003',
+    extras: [],
+  }
+  const orderRuns = makeRuns(b3Base, orderLines).map((r, i) => ({ ...r, id: `run-order-${i}` }))
+  const orderAmounts = computeAmounts(orderLines, orderRuns.reduce((n, r) => n + r.cost, 0))
+  const b3: Booking = { ...b3Base, amounts: orderAmounts, paid: orderAmounts.total }
+
   const members: Member[] = [
     { id: 'm-you', projectId: PROJECT, name: DEMO_NAME.customer, phone: '9876543210', role: 'Art Director', admin: true, you: true },
     ...SAMPLE_TEAM.map((t, i) => ({ id: `m-${i}`, projectId: PROJECT, ...t })),
@@ -235,7 +273,7 @@ function sample() {
     { id: 'msg-3', projectId: PROJECT, author: 'Kavya Rao', role: 'Set decorator', text: 'The transistor radio is booked on day 1. Looking for options.', at: now - 5 * HOUR },
     { id: 'msg-4', projectId: PROJECT, author: DEMO_NAME.customer, role: 'Art Director', text: 'I’ll check alternatives on the board.', at: now - 4 * HOUR, mine: true },
   ]
-  return { boards: [cafe, street, haveli], bookings: [b0, b1, b2], runs: [...donePastRuns, ...runs], members, messages }
+  return { boards: [cafe, street, haveli], bookings: [b0, b1, b2, b3], runs: [...donePastRuns, ...runs, ...orderRuns], members, messages }
 }
 
 const seed = sample()
@@ -246,7 +284,7 @@ export const useProjectOps = create<OpsState>()(
     (set, get) => ({
       ...seed,
       settings: { [PROJECT]: DEFAULT_SETTINGS },
-      seq: 1002,
+      seq: 1003,
 
       createBoard: (projectId, input) => {
         const id = `pb-${newId()}`
@@ -320,7 +358,10 @@ export const useProjectOps = create<OpsState>()(
       },
       book: (input, lines) => {
         const seq = get().seq + 1
-        const booking: Booking = { ...input, id: `BK-${seq}`, invoiceNo: `INV-26-${seq}`, createdAt: Date.now(), extras: [] }
+        const id = `BK-${seq}`
+        const booking: Booking = { ...input, id, invoiceNo: `INV-26-${seq}`, createdAt: Date.now(), extras: [] }
+        // A direct order has no board to hold its items, so it keeps them itself.
+        if (!input.boardId) booking.lines = lines.map((l) => ({ ...l, bookingId: id, holdUntil: null }))
         const runs = makeRuns(booking, lines)
         set((s) => ({
           seq,
@@ -376,6 +417,7 @@ export const useProjectOps = create<OpsState>()(
                   ...b,
                   returnDate: addDays(b.returnDate, days),
                   extras: [...b.extras, { id: newId(), label: `Extended ${days} day${days === 1 ? '' : 's'}`, amount, paid: false }],
+                  ...(b.lines && { lines: b.lines.map((l) => ({ ...l, to: addDays(l.to, days) })) }),
                 }
               : b,
           ),

@@ -7,7 +7,7 @@ import { cn } from '@/lib/cn'
 import { formatDateRangeShort, timeAgo } from '@/lib/dates'
 import { haptic } from '@/lib/haptics'
 import { EASE_OUT } from '@/lib/motion'
-import { pendingReviews } from '@/lib/ops'
+import { bookingSource, pendingReviews } from '@/lib/ops'
 import { useQuery } from '@/navigation'
 import { BottomSheet } from '@/overlays/BottomSheet'
 import { usePopup } from '@/overlays/popupContext'
@@ -69,7 +69,7 @@ export default function ReviewsScreen() {
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-[15px] font-semibold text-fg">{vendor.name}</p>
                         <p className="truncate text-[13px] text-muted">
-                          {projects.find((p) => p.id === booking.projectId)?.name} · {items} item{items === 1 ? '' : 's'}
+                          {bookingSource(booking, projects)} · {items} item{items === 1 ? '' : 's'}
                         </p>
                       </div>
                     </div>
